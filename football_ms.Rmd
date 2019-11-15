@@ -48,7 +48,7 @@ To maintain tractability and comparability to Beheim et al., I examine a manager
 knitr::include_graphics("figures/fig1_frequencies.png")
 ```
 
-Here I use a 5-year dataset of all games (n=9127, 2012-2017) in the five top European leagues (English Premier League, German Bundesliga, Spanish La Liga, French Ligue 1 and Italian Serie A) to test the following hypotheses, derived from the above theory and the results of Beheim et al. [-@beheim_strategic_2014]. All hypotheses and analyses were preregistered before running any analyses on the original data (https://osf.io/er4dx).
+Here I use a 5-year dataset of all games (n=9127, 2012-2017) in the five top European leagues (English Premier League, German Bundesliga, Spanish La Liga, French Ligue 1 and Italian Serie A) to test the following hypotheses, derived from the above theory and the results of Beheim et al. [-@beheim_strategic_2014]. All hypotheses and analyses were preregistered before running any analyses on the original data (https://osf.io/er4dx), and all data and code are available at https://github.com/amesoudi/football.
 
 * H1: A manager's choice of whether to play 4231 is determined by a combination of personal and social information.
 
