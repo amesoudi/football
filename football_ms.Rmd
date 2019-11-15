@@ -1,0 +1,205 @@
+---
+title: "Cultural evolution of football tactics: Strategic social learning in managers' choice of formation"
+author: Alex Mesoudi&nbsp;^[Human Behaviour and Cultural Evolution Group, Department of Biosciences, College of Life and Environmental Sciences, University of Exeter, Penryn, Cornwall TR10 9FE, United Kingdom; a.mesoudi@exeter.ac.uk]
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+fontsize: 11pt
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 4
+    number_sections: no
+    toc: false
+header-includes:
+  - \usepackage{setspace}
+  - \doublespacing
+  #- \singlespacing
+  - \usepackage{lineno}
+  - \linenumbers
+  #- \def\linenumberfont{\normalfont\small\sffamily}
+  - \def\linenumberfont{\normalfont\tiny\sffamily}
+csl: nature.csl
+bibliography: football.bib
+link-citations: yes
+---
+
+\newpage
+
+# Abstract
+
+In order to solve complex problems or make difficult decisions, people must strategically combine personal information acquired directly from experience (individual learning) and social information copied from others (social learning). The game of football (soccer) provides a wealth of real world data with which to quantify managers' use of personal and social information in selecting team formations. I analyse a 5-year dataset of all games (n=9127, 2012-2017) in the five top European leagues (English Premier League, German Bundesliga, Spanish La Liga, French Ligue 1 and Italian Serie A) to quantify the extent to which a manager's initial match formation is guided by their personal past use or success with that formation, or other managers' use or success with that formation. I focus in particular on the use of the 4231 formation, which was the dominant formation at the start of this period but showed a gradual decline in use over time. I find that, as predicted, a manager's choice of whether to use 4231 or not is influenced by both their recent use of 4231 (personal information) and the use of 4231 in the entire population of managers in that division (social information). Contrary to expectations, managers appeared to rely more on personal than social information, although this estimate was highly variable across managers and divisions. Serie A managers, in particular, showed a much stronger use of personal information, likely due to the rarity of 4231 in that division. Finally, there did not appear to be an adaptive tradeoff between social and personal information use, with the relative reliance on each failing to predict managerial success.
+
+\newpage
+# Introduction
+
+When solving problems or making decisions, people use a combination of personal information acquired directly from the environment (individual learning), and social information acquired by copying others (social learning) [@boyd_culture_1985; @boyd_why_1995; @enquist_critical_2007; @kendal_social_2018; @laland_social_2004; @perreault_bayesian_2012; @rogers_does_1988]. The strategic combination of individual and social learning is adaptive when decisions or problems are challenging, such as when environments change over time such that social information may become outdated [@boyd_why_1995; @enquist_critical_2007; @rogers_does_1988], or when solutions are causally opaque or multidimensional, such that they cannot be acquired by individual learning alone and require the social learning of accumulated past solutions [@boyd_culture_1985; @boyd_why_1995]. People show this strategic mix of individual and social learning in the lab [@kameda_does_2003; @mcelreath_applying_2005; @mesoudi_experimental_2008; @morgan_evolutionary_2011; @toelch_decreased_2009; @toelch_individual_2014] and the real world [@beheim_strategic_2014; @miu_innovation_2018] (although sometimes imperfectly [@mesoudi_experimental_2011]). When combined appropriately, individual and social learning can generate cumulative cultural evolution, where innovations generated via individual learning are preserved and accumulated over generations via social learning [@mesoudi_what_2018].
+
+Beheim, Thigpen & McElreath [-@beheim_strategic_2014] provided an innovative demonstration of the strategic use of social and individual learning in the real world. They analysed decades of professional matches of the board game Go to understand the spread of an opening move, the “Fourfour”. This move appeared in 1968 and then increased rapidly in frequency. Beheim et al. showed that Go players’ use of Fourfour is predicted by both personal information - the past use and win rate of Fourfour by that player - and social information - the past use and win rate of Fourfour in the entire population of Go players. They also showed considerable between-player variation, with some players using predominantly social information (e.g. Lee Sedol), and others using mostly personal information (e.g. Takemiya Masaki, the originator of Fourfour).
+
+Here I apply the methods and approach of Beheim et al. to another competitive real world sport, football (soccer). Football is enjoyed by millions of people worldwide, and European leagues alone have a revenue of almost €30 billion [@barnard_world_2019]. Football has been subject to historical analyses of tactics [@wilson_inverting_2013] and increasingly, by providing a wealth of fine-grained quantitative data, statistical analyses [@tamura_win-stay_2015]. 
+
+The equivalent in a football match to a Go player’s opening move is a manager’s starting formation. This describes how the ten outfield players are initially organised on the pitch. Formations are typically defined by three or four numbers specifying the number of players in each segment of the pitch. For example, 442 comprises four defenders, four midfielders and two attackers. While formations may change during matches in response to player substitutions or other in-game events, all managers select one of a finite and, in practice, relatively small set of starting formations. Formations are a key component of overall tactics. For example, 541 is more defensive than 343. Historically, formations and tactics have gradually evolved over time, with noticeable long-term trends and short-term cycles [@wilson_inverting_2013].
+
+The key question addressed here is the extent to which managers use personal and social information to decide on their starting formation. This is a challenging decision, as defined above. The success of a formation depends partly on what formation the opposing manager plays, making payoffs of the same formation temporally variable and frequency dependent. Various other factors, from squad strength to luck, determine match outcomes in addition to formation, making the true contribution of the latter difficult to determine. And in the high stakes of football management (the median tenure of English Premier League managers as of August 2019 was 1 year, 158 days), there are limited opportunities to directly trial formations, especially if those trials are unsuccessful.
+
+To maintain tractability and comparability to Beheim et al., I examine a manager's choice of whether to play the 4231 formation or not. 4231 was the dominant formation during the period of study (Figure \@ref(fig:fig1)): in the top five European domestic leagues from 2012-2017, it was used 37% of the time, more than double the next most common formations (18% for 433 and 14% for 442). However, 4231 also showed a clear decline in frequency during this period, from 47% in the 2012/13 season to 28% in the 2016/17 season. This decline was more extreme in some leagues than others; for example, the Spanish La Liga saw a decline in 4231 use from 78% to 37%.
+
+```{r fig1, echo=FALSE, out.width = "460px", fig.cap="Frequencies of initial formations across all leagues (large image) and in the five separate leagues (right panels). The three most common formations are shown: 4231 (orange), 433 (blue) and 442 (green). Other less common formations are shown in grey. Frequencies are calculated as the proportion of all matches in consecutive 30-day bins that started with that formation. 'Days' are consecutive match days across five seasons from 2012-2017, omitting days on which no matches were played.", fig.align = "center"}
+knitr::include_graphics("figures/fig1_frequencies.png")
+```
+
+Here I use a 5-year dataset of all games (n=9127, 2012-2017) in the five top European leagues (English Premier League, German Bundesliga, Spanish La Liga, French Ligue 1 and Italian Serie A) to test the following hypotheses, derived from the above theory and the results of Beheim et al. [-@beheim_strategic_2014]. All hypotheses and analyses were preregistered before running any analyses on the original data (https://osf.io/er4dx).
+
+* H1: A manager's choice of whether to play 4231 is determined by a combination of personal and social information.
+
+* H2: On average, there is greater reliance on social than personal information, as found by Beheim et al. for Go players. 
+
+* H3: There is more variation between managers in both personal and social information use compared to randomised data.
+
+* H4: There is an n-shaped relationship between the ratio of population:personal information use and a manager's success, indicating that an overreliance on either form of information is less effective than strategically combining the two.
+
+
+# Methods
+
+## Data
+
+The original dataset was downloaded from the website Kaggle, originally compiled by Jemilu Mohammed from various online sources including whoscored.com, dated 6th July 2017 (version 3) and with licence CC0: Public Domain. There are 9127 games in the dataset, which gives 18254 starting formations (two per game, one for each team). The downloaded dataset is available as Supplementary Information.
+
+Data was preprocessed to correct inconsistent spelling of manager names (e.g. Arsène Wenger and Arsene Wenger were merged, as were Gus Poyet and Gustavo Poyet), add one missing formation and one missing manager, add season indicators using official season start and end dates, and create predictor variables. 
+
+## Predictors
+
+Following Beheim et al., predictors were created using a moving time window of $X$ days previous to the formation choice in question. That is, for each formation choice, predictors were calculated from all games played in the previous $X$ days, not including the day on which that formation was played. In the analyses reported below $X=30$, and analyses are repeated in the Supplementary Information using  $X=20$, $X=40$ and $X=60$ (these choices were preregistered, and generated qualitatively identical results to those presented below for $X=30$). The $X$-day window was reset at the start of each season, so games played in the first $X$ days of each season were not included in the analyses. The Bundesliga, unlike the other leagues, has a mid-season break of more than 30 days; this was reduced to 10 days in each season so that all $X$-day windows yielded prior game data.
+
+Personal predictors were (a) personal use of 4231: the proportion of games in the $X$-day window played by that manager in that division and season in which 4231 was chosen, out of all games played by that manager in that division and season in the $X$-day window, centred on 0.5; (b) personal 4231 win rate: the proportion of games played with 4231 by that manager in that division and season in the $X$-day window that were won, centred on the equivalent win rate for games played with a non-4231 formation; (c) the interaction between personal 4231 use and personal 4231 win rate; and (d) the interaction between personal 4231 use and the managers' overall win rate with any formation, with the latter centred on the overall win rate of all managers in that division and season.
+
+Population predictors were (e) population 4231 use: the proportion of games in the $X$-day window played in that division and season in which 4231 was chosen, out of all games played in that division and season in the $X$-day window, centred on 0.5; (f) population 4231 win rate: the proportion of games played with 4231 in that division and season in the $X$-day window that were won, centred on the equivalent win rate for games played with a non-4231 formation; (g) the interaction between population 4231 use and population 4231 win rate; and (h) the interaction between population 4231 use and the managers' overall win rate with any formation, with the latter centred on the overall win rate of all managers in that division and season.
+
+Additional predictors were an indicator variable denoting whether the formation was used home or away, and a measure of team strength which was the proportion of games won by that team in that entire season, centred on the mean win rate of all teams in that division in that season.
+
+## Analyses
+
+Bayesian multi-level regression models were run using the rethinking package and book [@mcelreath_rethinking:_2019; @mcelreath_statistical_2016]. All models contained varying effects for manager and division. The null model contained only the home/away and team strength predictors. The personal model contained home/away, team strength and the four personal information predictors. The population model contained home/away, team strength and the four population information predictors. The full model contained home/away, team strength and all eight personal and population variables. In addition to varying intercepts for manager and division, the personal model contained varying slopes for personal information use and win rate, the population model contained varying slopes for population information use and win rate, and the full model had both sets of varying slopes. Full model specifications can be found in the Supplementary Information.
+
+## Predictions
+
+Hypotheses H1-H4 specified in the Introduction were tested statistically via the following predictions:
+
+*H1 predictions:* The full regression model with personal (individual) and population (social) predictors has better fit to the data than the personal-only model, the population-only model, and the null model with neither personal nor population predictors. Fit is indicated by model comparison using WAIC. Additionally, in the full model, there are effects of (a) personal 4231 use, (b) personal 4231 win rate, (c) population 4231 use and (d) population 4231 win rate, and interactions between (e) personal 4231 use and win, and between (f) population 4231 use and win rates. Effects are indicated by the parameter estimates' 89% CI (specifically, 89% percentile interval, see [@mcelreath_statistical_2016]) not including zero in the full model. 
+
+*H2 prediction:* The ratio of population:personal use, calculated by dividing the estimate for population use in the full model by the estimate for personal use in the full model, is reliably greater than one, as indicated by 89% CIs not overlapping one.
+
+*H3 predictions:* The standard deviation of the varying effects for managers' (a) personal 4231 use and (b) population 4231 use in the best-supported regression model will be larger than the equivalent standard deviations in a model generated with dummy data that has randomised formation and win rates across managers.
+
+*H4 prediction:* In a regression model with manager as unit of analysis which contains the managers' population:personal information use ratio and their personal win rate relative to other managers in that division and season, the win rate is reliably predicted by the square of the population:personal use ratio (i.e. a negative coefficient in a quadratic polynomial).
+
+# Results
+
+## H1 predictions: combination of population and personal information use
+
+As predicted, the full model containing both personal and population predictors was best supported, containing all of the model weight compared to the personal, population and null models (Table \@ref(tab:table1)). However, the WAIC of the personal model came much closer to the full model WAIC than the population or null models.
+
+```{r table1, echo = F, message = F}
+mcomparison <- as.matrix(readRDS(file="modeloutputs/mcomparison.rds"))
+
+row.names(mcomparison)[row.names(mcomparison) == "m1"] <- "Null model"
+row.names(mcomparison)[row.names(mcomparison) == "m2"] <- "Personal model"
+row.names(mcomparison)[row.names(mcomparison) == "m3"] <- "Population model"
+row.names(mcomparison)[row.names(mcomparison) == "m4"] <- "Full model"
+
+knitr::kable(mcomparison, caption="Model comparison to test hypothesis H1.", digits = 2, booktabs = T, linesep="")
+```
+
+Table \@ref(tab:table2) shows the parameter estimates for the full model. As predicted, there are effects of personal 4231 use, personal 4231 win rate and an interaction between these two predictors. There is also an effect of population 4231 use. However, there were no reliable effects of population 4231 win rate, nor interactions between personal 4231 use and personal overall win rate, nor interactions between population 4231 use and either population 4231 win rate or personal overall win rate.
+
+```{r table2, echo = F, message = F}
+precis_m4 <- as.matrix(readRDS(file="modeloutputs/precis_m4.rds"))
+
+# add rows, sub-headings for fixed and varying effects
+precis_m4 <- rbind(fixed_effects = rep(NA,6), precis_m4)
+precis_m4 <- rbind(precis_m4[1:12,], rep(NA,6), varying_effects = rep(NA,6), precis_m4[13:18,])
+
+row.names(precis_m4) <- c("Fixed effects:", "Home/away: Home", "Home/away: Away", "Team strength", "Personal 4231 use", "Personal 4231 win rate", "Personal 4231 use * personal 4231 win rate", "Personal 4231 use * personal win rate", "Population 4231 use", "Population 4231 win rate", "Population 4231 use * population 4231 win rate", "Population 4231 use * personal win rate", "  ", "Varying effects:", "Manager", "Manager * personal 4231 use", "Manager * population 4231 win rate", "Division", "Division * personal 4231 use", "Division * population 4231 win rate")
+
+options(knitr.kable.NA = '')
+knitr::kable(precis_m4[,1:4], caption="Parameter estimates for the full model. Home/away is an indicator trait with separate estimates for formations used home and away. Varying effects show the standard deviations of the varying intercepts and slopes. See SI for full model specification and priors.", digits = 2, booktabs = T, linesep="")
+```
+
+
+```{r fig2, echo=FALSE, fig.cap = "(A) The predicted probability of using 4231 as a function of personal 4231 use, assuming that the 4231 win rate is the same as the non-4231 rate (black line, grey shading showing 89\\% CI), assuming that the personal 4231 win rate is 50\\% higher than the non-4231 win rate (orange line and shading), and assuming that the personal 4231 win rate is 50\\% lower than the non-4231 win rate (blue line and shading). (B) The equivalent predictions for population 4231 use, and +50\\% or -50\\% population 4231 win rates relative to non-4231 population win rates.", fig.align = "center"}
+knitr::include_graphics("figures/fig2_pers_pop_interactions.png")
+```
+
+Figure \@ref(fig:fig2) shows how past personal 4231 use (Figure \@ref(fig:fig2)A) and population 4231 use (Figure \@ref(fig:fig2)B) increase the probability of 4231 being chosen. The interaction between personal 4231 use and personal 4231 win rate revealed in Table \@ref(tab:table2) can be seen in Figure \@ref(fig:fig2)A: for managers who have seldom used 4231 in recent games, a higher win rate with 4231 increases their likelihood of choosing 4231, and a lower win rate decreases that likelihood. Also consistent with Table \@ref(tab:table2), Figure \@ref(fig:fig2)B reveals no reliable interaction between population 4231 use and population 4231 win rate, with the higher and lower performance lines falling within the average performance CI shading.
+
+## H2 predictions: ratio of population to personal 4231 use
+
+The ratio of population:personal use, as calculated using the full model (see Table \@ref(tab:table2)), had a mean of 0.68 (89% CI[0.24, 1.41]). Contrary to hypothesis H2, this suggests that personal information was more influential than population (i.e. social) information. As indicated by the wide confidence intervals, however, this estimate was highly uncertain, and there was a lot of variation in this ratio across managers and divisions.
+
+## H3 predictions: variation across managers and divisions
+
+Table \@ref(tab:table3) shows that, as predicted, there was more variation across managers in the effects of both personal 4231 use and population 4231 use compared to randomised data. Also as predicted, there was more variation across divisions in the effect of personal 4231 use compared to randomised data, but not in the effect of population 4231 use.
+
+```{r table3, echo = F, message = F}
+precis_sigmadiffs <- as.matrix(readRDS(file="modeloutputs/precis_sigmadiffs.rds"))
+
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pers_manager"] <- "Manager * personal 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pop_manager"] <- "Manager * population 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pers_division"] <- "Division * personal 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pop_division"] <- "Division * population 4231 use"
+
+knitr::kable(precis_sigmadiffs, caption="Tests of the differences between varying effects from the real data and varying effects from randomised data, to test hypothesis H3. Values shown are real minus randomised standard deviations.", digits = 2, booktabs = T, linesep="")
+```
+
+## H4 predictions: population to personal use ratio and win rate
+
+Contrary to hypothesis H4, there was no n-shaped quadratic relationship between manager win rate and population:personal information use ratio (Table \@ref(tab:table4) and Figure \@ref(fig:fig3)). There was also no reliable linear relationship: as shown in Figure \@ref(fig:fig3), for most use ratios the relationship with win rate is flat. Managers with very high ratios, indicating more reliance on population 4231 use than personal 4231 use, had higher win rates, but the shaded 89% CIs always included zero, and this increase is likely unduly influenced by the right-most outlier.
+
+```{r fig3, echo=FALSE, out.width = "300px", fig.cap = "Relationship between each manager's win rate relative to the average manager's win rate and each manager's population:personal information use ratio as generated from the full model. Dotted lines indicated the average win rate and equal ratio. The thick line shows the predicted mean win rate at each value of the ratio, with shaded 89\\% CIs.", fig.align = "center"}
+knitr::include_graphics("figures/fig3_ratio_winrate.png")
+```
+
+```{r table4, echo = F, message = F}
+precis_manager <- as.matrix(readRDS(file="modeloutputs/precis_manager.rds"))
+
+knitr::kable(precis_manager, caption="Model estimates for the quadratic regression model with manager as unit of analysis, to test hypothesis H4. Parameter a is the intercept, b1 is the linear coefficient and b2 the quadratic coefficient. Win rate is modelled as normally distributed with standard deviation sigma. See SI for priors.", digits = 2, booktabs = T, linesep="")
+```
+
+## Exploratory analysis: between division effects
+
+Figure \@ref(fig:fig4) shows the variation across the five divisions in the effect of personal 4231 use. Four of the divisions are almost identical. The Italian Serie A, however, shows a much stronger effect of personal information use. This is likely because of the low overall frequency of 4231 in this division, as shown in the Serie A inset in Figure \@ref(fig:fig1). The majority of managers in Serie A never or seldom used 4231 during this period; out of 67 managers who managed in Serie A, only three used 4231 in more than 50% of their games, only ten used it in more than 25% of their games, and 35 never used it. The small number of managers who used 4231 in a majority of their games would have disproportionately influenced the model's predicted probability of subsequently picking 4231 at high values of personal 4231 use, as seen in Figure \@ref(fig:fig4)A.
+
+```{r fig4, echo=FALSE, fig.cap = "(A) Effect of personal 4231 use on probability of choosing 4231 broken down by division. (B) Joint posterior densities of the relative reliance on personal and social information, for the five divisions. The solid black diagonal indicates equal personal and population influence. EPL = English Premier League.", fig.align = "center"}
+knitr::include_graphics("figures/fig4_divisions.png")
+```
+
+## Exploratory analysis: between manager effects
+
+Figure \@ref(fig:fig5)A shows variation across five successful managers who played over 100 games in our study period: Antonio Conte (78% win rate, 101 games), Josep Guardiola (74% win rate, 124 games), Carlo Ancelotti (73%, 131 games), José Mourinho (59% win rate, 149 games) and Arsene Wenger (59% win rate, 170 games).
+
+Figure \@ref(fig:fig5)B shows variation across five relatively unsuccessful managers who played over 100 games in our study period: Roberto Donadoni (30% win rate, 161 games), Sam Allardyce (32% win rate, 151 games), Alan Pardew (34%, 147 games), Lucas Alcaraz (27% win rate, 107 games) and Mark Hughes (35% win rate, 144 games).
+
+While exploratory, we can see in these figures that successful managers seem to be more different to one another in information use strategies than unsuccessful managers. Carlo Ancelotti has less reliance on social information than the other successful managers, while Josep Guardiola has relatively less reliance on personal information. The unsuccessful managers show substantial overlap with one another over a smaller combined area than the successful managers. Whether this pattern is robust, and the reasons for it, are worthy of further study. Perhaps there are more ways to be successful than there are to be unsuccessful in football management.
+
+```{r fig5, echo=FALSE, fig.cap = "Joint posterior densities of the relative reliance on personal and social information, for (A) five managers with high win rates and (B) five managers with low win rates, all of whom have managed more than 100 games in the period of study. Ellipses indicate the 80\\% confidence region for each manager. The solid black diagonals indicate equal personal and population influence.", fig.align = "center"}
+knitr::include_graphics("figures/fig5_managers.png")
+```
+
+# Discussion
+
+Complex decisions often require the strategic combination of personal information acquired via individual learning and population-wide information acquired via social learning, each of which has distinct advantages and disadvantages. Beheim et al. [-@beheim_strategic_2014] analysed decades of games of Go to show that professional Go players combine personal and social information when deciding on opening moves, and these individual-level strategic decisions generated long-term evolutionary dynamics. Here, I applied the same methodological approach to the game of football, where the equivalent to an opening Go move is a manager's choice of starting formation. Consequently, I examined personal and social influences on a manager's choice of whether to use the most popular 4231 formation or not.
+
+Over five seasons from 2012-2017 across the five top European leagues, it is indeed the case (supporting Hypothesis H1) that a manager's choice of whether to play 4231 is on average determined by both their own recent use of 4231 (personal information) and the frequency within which 4231 is recently used in the entire population of managers from the same league (social information), as well as the manager's personal win rate with 4231.
+
+Contrary to the more specific prediction (Hypothesis H2) that managers should rely more on social than personal information, given the difficulty of personally trialling different formations in the high stakes world of football management and previous findings to that effect by Beheim et al. [-@beheim_strategic_2014], there was if anything more reliance on personal information. This is puzzling not only for the aforementioned reasons (the difficulty of individual learning should favour reliance on social learning, plus the previous findings of Beheim et al.), but also the fact that the population provides much more information overall in the same time period: for the 30-day time window used here, a manager using population-wide information can draw on a mean of 76 games played across the entire division, while personal information only provides data from a mean of 3.6 games. The preference for personal information may be evidence for an egocentric bias, with managers weighting their own experience higher than others' experience. Previous lab experiments have found similar over-reliance on individual learning at the expense of social learning [@mcelreath_applying_2005; @mesoudi_experimental_2011; @morgan_evolutionary_2011; @toelch_individual_2014; @efferson_conformists_2008; @weizsacker_we_2010].
+
+On the other hand, such estimates of the relative reliance on personal and population information were very uncertain, with confidence intervals so wide as to be consistent with a reliance on either form. This is due to the extensive variation in information use strategy across both managers and divisions, much more than would be expected if decisions were random (Hypothesis H3).
+
+However, this variation does not seem to exhibit an adaptive tradeoff (Hypothesis H4): managers with different ratios of population:personal information use did not vary in their success, contrary to the expectation that an overreliance on either type of information should be detrimental. Perhaps in team sports like football, starting formations do not reliably translate into success in the way that opening moves in Go do, given the many other factors that determine success and the possibility of changing formations during a game.
+
+Exploratory analyses showed that one league, Serie A, showed a much stronger effect of personal information than the other leagues. This is likely because of the low overall use of 4231 in this league, with very few managers using this formation; this small number of managers drove the effect, given that if a manager used 4231 previously, they were highly likely to be one of the few managers to use it in the future. This illustrates two points: first, the importance of including league (or any other grouping variable) as a varying effect in the analysis, to account for unusual patterns such as this, and second, the influence of overall trait frequency on the learning strategies that are employed. Rare traits may be driven more by personal experience, when a manager is unable to draw on the experience of others.
+
+Future analyses might apply more generative models to data such as this, for example reinforcement, memory decay or Bayesian updating models to more directly model how managers might be updating their beliefs in response to constantly changing personal and social information. This may necessitate different implementations of the time window. Here this was a fixed $X$-day time window preceding the formation choice. More advanced models might include all previous games in a season/division, weighted by recency, or even social network ties amongst managers.
+
+\newpage
+# References

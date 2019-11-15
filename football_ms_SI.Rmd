@@ -1,0 +1,302 @@
+---
+title: "Supplementary Information for 'Cultural evolution of football tactics: Strategic social learning in managers' choice of formation'"
+author: Alex Mesoudi&nbsp;^[Human Behaviour and Cultural Evolution Group, Department of Biosciences, College of Life and Environmental Sciences, University of Exeter, Penryn, Cornwall TR10 9FE, United Kingdom; a.mesoudi@exeter.ac.uk]
+date: '`r format(Sys.time(), "%d %B, %Y")`'
+fontsize: 11pt
+output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 4
+    number_sections: yes
+    toc: true
+header-includes:
+  - \usepackage{setspace}
+  - \doublespacing
+  #- \singlespacing
+  - \usepackage{lineno}
+  #- \linenumbers
+  - \def\linenumberfont{\normalfont\small\sffamily}
+  #- \def\linenumberfont{\normalfont\tiny\sffamily}
+  - \newcommand{\beginsupplement}{\setcounter{table}{0}  \renewcommand{\thetable}{S\arabic{table}} \setcounter{figure}{0} \renewcommand{\thefigure}{S\arabic{figure}}}
+csl: nature.csl
+bibliography: football.bib
+link-citations: yes
+---
+\beginsupplement
+\newpage
+
+# Model specifications
+
+The following code gives the models as specified in the rethinking package [@mcelreath_rethinking:_2019] in R, using non-centred parameterisation.
+
+## Null model
+
+```{r null_code, eval = F}
+fourtwothreeone ~ dbinom(1, p)
+logit(p) <- a_homeaway[homeaway] + b_team_strength * team_strength + 
+    a_manager[manager_id] * sigma_manager + a_division[division_id] * 
+    sigma_division
+a_homeaway[homeaway] ~ dnorm(0, 1)
+b_team_strength ~ dnorm(0, 1)
+a_manager[manager_id] ~ dnorm(0, 1)
+a_division[division_id] ~ dnorm(0, 1)
+sigma_manager ~ dexp(1)
+sigma_division ~ dexp(1)
+```
+
+
+## Personal model
+
+```{r pers_model_code, eval = F}
+fourtwothreeone ~ dbinom(1, p)
+logit(p) <- a_homeaway[homeaway] + b_team_strength * team_strength + 
+    a_manager[manager_id, 1] + a_manager[manager_id, 2] * pers_use + 
+    a_division[division_id, 1] + a_division[division_id, 2] * 
+    pers_use + b_pers_use * pers_use + b_pers_win * pers_win + 
+    b_pers_useXpers_win * pers_useXpers_win + b_pers_useXpers_win_all * 
+    pers_useXpers_win_all
+a_homeaway[homeaway] ~ dnorm(0, 1)
+b_team_strength ~ dnorm(0, 1)
+transpars > matrix[manager_id, 2]:a_manager <- compose_noncentered(sigma_manager, 
+    L_Rho_manager, z_manager)
+transpars > matrix[division_id, 2]:a_division <- compose_noncentered(sigma_division, 
+    L_Rho_division, z_division)
+matrix[2, manager_id]:z_manager ~ normal(0, 1)
+matrix[2, division_id]:z_division ~ normal(0, 1)
+b_pers_use ~ dnorm(0, 1)
+b_pers_win ~ dnorm(0, 1)
+b_pers_useXpers_win ~ dnorm(0, 1)
+b_pers_useXpers_win_all ~ dnorm(0, 1)
+vector[2]:sigma_manager ~ dexp(1)
+cholesky_factor_corr[2]:L_Rho_manager ~ lkj_corr_cholesky(2)
+vector[2]:sigma_division ~ dexp(1)
+cholesky_factor_corr[2]:L_Rho_division ~ lkj_corr_cholesky(2)
+```
+
+
+## Population model
+
+```{r pop_model_code, eval = F}
+fourtwothreeone ~ dbinom(1, p)
+logit(p) <- a_homeaway[homeaway] + b_team_strength * team_strength + 
+    a_manager[manager_id, 1] + a_manager[manager_id, 2] * pop_use + 
+    a_division[division_id, 1] + a_division[division_id, 2] * 
+    pop_use + b_pop_use * pop_use + b_pop_win * pop_win + b_pop_useXpop_win * 
+    pop_useXpop_win + b_pop_useXpers_win_all * pop_useXpers_win_all
+a_homeaway[homeaway] ~ dnorm(0, 1)
+b_team_strength ~ dnorm(0, 1)
+transpars > matrix[manager_id, 2]:a_manager <- compose_noncentered(sigma_manager, 
+    L_Rho_manager, z_manager)
+transpars > matrix[division_id, 2]:a_division <- compose_noncentered(sigma_division, 
+    L_Rho_division, z_division)
+matrix[2, manager_id]:z_manager ~ normal(0, 1)
+matrix[2, division_id]:z_division ~ normal(0, 1)
+b_pop_use ~ dnorm(0, 1)
+b_pop_win ~ dnorm(0, 1)
+b_pop_useXpop_win ~ dnorm(0, 1)
+b_pop_useXpers_win_all ~ dnorm(0, 1)
+vector[2]:sigma_manager ~ dexp(1)
+cholesky_factor_corr[2]:L_Rho_manager ~ lkj_corr_cholesky(2)
+vector[2]:sigma_division ~ dexp(1)
+cholesky_factor_corr[2]:L_Rho_division ~ lkj_corr_cholesky(2)
+```
+
+
+## Full model
+
+```{r full_model_code, eval = F}
+fourtwothreeone ~ dbinom(1, p)
+logit(p) <- a_homeaway[homeaway] + b_team_strength * team_strength + 
+    a_manager[manager_id, 1] + a_manager[manager_id, 2] * pers_use + 
+    a_manager[manager_id, 3] * pop_use + a_division[division_id, 
+    1] + a_division[division_id, 2] * pers_use + a_division[division_id, 
+    3] * pop_use + b_vars
+b_vars <- b_pers_use * pers_use + b_pers_win * pers_win + b_pers_useXpers_win * 
+    pers_useXpers_win + b_pers_useXpers_win_all * pers_useXpers_win_all + 
+    b_pop_use * pop_use + b_pop_win * pop_win + b_pop_useXpop_win * 
+    pop_useXpop_win + b_pop_useXpers_win_all * pop_useXpers_win_all
+a_homeaway[homeaway] ~ dnorm(0, 1)
+b_team_strength ~ dnorm(0, 1)
+transpars > matrix[manager_id, 3]:a_manager <- compose_noncentered(sigma_manager, 
+    L_Rho_manager, z_manager)
+transpars > matrix[division_id, 3]:a_division <- compose_noncentered(sigma_division, 
+    L_Rho_division, z_division)
+matrix[3, manager_id]:z_manager ~ normal(0, 1)
+matrix[3, division_id]:z_division ~ normal(0, 1)
+b_pers_use ~ dnorm(0, 1)
+b_pers_win ~ dnorm(0, 1)
+b_pers_useXpers_win ~ dnorm(0, 1)
+b_pers_useXpers_win_all ~ dnorm(0, 1)
+b_pop_use ~ dnorm(0, 1)
+b_pop_win ~ dnorm(0, 1)
+b_pop_useXpop_win ~ dnorm(0, 1)
+b_pop_useXpers_win_all ~ dnorm(0, 1)
+vector[3]:sigma_manager ~ dexp(1)
+cholesky_factor_corr[3]:L_Rho_manager ~ lkj_corr_cholesky(2)
+vector[3]:sigma_division ~ dexp(1)
+cholesky_factor_corr[3]:L_Rho_division ~ lkj_corr_cholesky(2)
+```
+
+
+## Manager model
+
+```{r manager_model_code, eval = F}
+win_rate ~ dnorm(mu, sigma)
+mu <- a + b1 * info_ratio + b2 * info_ratio_sq
+a ~ normal(0, 1.5)
+b1 ~ normal(0, 0.2)
+b2 ~ normal(-0.1, 0.2)
+sigma ~ dexp(1)
+```
+
+\newpage
+# Results with different predictor time windows
+
+The analyses in the main text use a time window of $X=30$ days to calculate all use and win rate predictors. Here I present results with different time windows: $X=20$, $X=40$ and $X=60$ (NB these choices, both what to include in the main paper and alternatives to consider here, were all preregistered).
+
+## Hypothesis H1: combination of population and personal information use
+
+Tables S1-S3 show model comparisons for X=20, X=40 and X=60 day windows respectively, to compare with Table 1 in the main paper that uses X=30. Across all time windows, the full model is best supported, receiving all model weight, and the personal model was next best supported.
+
+Tables S4-S6 show the full models for X=20, X=40 and X=60 day windows, to compare with Table 2 in the main paper that uses X=30. Apart from inevitable differences in coefficient values, the models all have the same patterns of results: for each time window, the same predictors either cross zero or do not cross zero.
+
+```{r tableS1, echo = F, message = F}
+mcomparison <- as.matrix(readRDS(file="modeloutputs/mcomparisonX20.rds"))
+
+row.names(mcomparison)[row.names(mcomparison) == "m1"] <- "Null model"
+row.names(mcomparison)[row.names(mcomparison) == "m2"] <- "Personal model"
+row.names(mcomparison)[row.names(mcomparison) == "m3"] <- "Population model"
+row.names(mcomparison)[row.names(mcomparison) == "m4"] <- "Full model"
+
+knitr::kable(mcomparison, caption="Model comparison to test hypothesis H1, with X=20 day time window.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS2, echo = F, message = F}
+mcomparison <- as.matrix(readRDS(file="modeloutputs/mcomparisonX40.rds"))
+
+row.names(mcomparison)[row.names(mcomparison) == "m1"] <- "Null model"
+row.names(mcomparison)[row.names(mcomparison) == "m2"] <- "Personal model"
+row.names(mcomparison)[row.names(mcomparison) == "m3"] <- "Population model"
+row.names(mcomparison)[row.names(mcomparison) == "m4"] <- "Full model"
+
+knitr::kable(mcomparison, caption="Model comparison to test hypothesis H1, with X=40 day time window.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS3, echo = F, message = F}
+mcomparison <- as.matrix(readRDS(file="modeloutputs/mcomparisonX60.rds"))
+
+row.names(mcomparison)[row.names(mcomparison) == "m1"] <- "Null model"
+row.names(mcomparison)[row.names(mcomparison) == "m2"] <- "Personal model"
+row.names(mcomparison)[row.names(mcomparison) == "m3"] <- "Population model"
+row.names(mcomparison)[row.names(mcomparison) == "m4"] <- "Full model"
+
+knitr::kable(mcomparison, caption="Model comparison to test hypothesis H1, with X=60 day time window.", digits = 2, booktabs = T, linesep="")
+```
+
+
+```{r tableS4, echo = F, message = F}
+precis_m4 <- as.matrix(readRDS(file="modeloutputs/precis_m4X20.rds"))
+
+# add rows, sub-headings for fixed and varying effects
+precis_m4 <- rbind(fixed_effects = rep(NA,6), precis_m4)
+precis_m4 <- rbind(precis_m4[1:12,], rep(NA,6), varying_effects = rep(NA,6), precis_m4[13:18,])
+
+row.names(precis_m4) <- c("Fixed effects:", "Home/away: Home", "Home/away: Away", "Team strength", "Personal 4231 use", "Personal 4231 win rate", "Personal 4231 use * personal 4231 win rate", "Personal 4231 use * personal win rate", "Population 4231 use", "Population 4231 win rate", "Population 4231 use * population 4231 win rate", "Population 4231 use * personal win rate", "  ", "Varying effects:", "Manager", "Manager * personal 4231 use", "Manager * population 4231 win rate", "Division", "Division * personal 4231 use", "Division * population 4231 win rate")
+
+options(knitr.kable.NA = '')
+knitr::kable(precis_m4[,1:4], caption="Parameter estimates for the full model, with X=20 day time window. Home/away is an indicator trait with separate estimates for formations used home and away. Varying effects show the standard deviations of the varying intercepts and slopes. See SI for full model specification and priors.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS5, echo = F, message = F}
+precis_m4 <- as.matrix(readRDS(file="modeloutputs/precis_m4X40.rds"))
+
+# add rows, sub-headings for fixed and varying effects
+precis_m4 <- rbind(fixed_effects = rep(NA,6), precis_m4)
+precis_m4 <- rbind(precis_m4[1:12,], rep(NA,6), varying_effects = rep(NA,6), precis_m4[13:18,])
+
+row.names(precis_m4) <- c("Fixed effects:", "Home/away: Home", "Home/away: Away", "Team strength", "Personal 4231 use", "Personal 4231 win rate", "Personal 4231 use * personal 4231 win rate", "Personal 4231 use * personal win rate", "Population 4231 use", "Population 4231 win rate", "Population 4231 use * population 4231 win rate", "Population 4231 use * personal win rate", "  ", "Varying effects:", "Manager", "Manager * personal 4231 use", "Manager * population 4231 win rate", "Division", "Division * personal 4231 use", "Division * population 4231 win rate")
+
+options(knitr.kable.NA = '')
+knitr::kable(precis_m4[,1:4], caption="Parameter estimates for the full model, with X=40 day time window. Home/away is an indicator trait with separate estimates for formations used home and away. Varying effects show the standard deviations of the varying intercepts and slopes. See SI for full model specification and priors.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS6, echo = F, message = F}
+precis_m4 <- as.matrix(readRDS(file="modeloutputs/precis_m4X60.rds"))
+
+# add rows, sub-headings for fixed and varying effects
+precis_m4 <- rbind(fixed_effects = rep(NA,6), precis_m4)
+precis_m4 <- rbind(precis_m4[1:12,], rep(NA,6), varying_effects = rep(NA,6), precis_m4[13:18,])
+
+row.names(precis_m4) <- c("Fixed effects:", "Home/away: Home", "Home/away: Away", "Team strength", "Personal 4231 use", "Personal 4231 win rate", "Personal 4231 use * personal 4231 win rate", "Personal 4231 use * personal win rate", "Population 4231 use", "Population 4231 win rate", "Population 4231 use * population 4231 win rate", "Population 4231 use * personal win rate", "  ", "Varying effects:", "Manager", "Manager * personal 4231 use", "Manager * population 4231 win rate", "Division", "Division * personal 4231 use", "Division * population 4231 win rate")
+
+options(knitr.kable.NA = '')
+knitr::kable(precis_m4[,1:4], caption="Parameter estimates for the full model, with X=60 day time window. Home/away is an indicator trait with separate estimates for formations used home and away. Varying effects show the standard deviations of the varying intercepts and slopes. See SI for full model specification and priors.", digits = 2, booktabs = T, linesep="")
+```
+
+## Hypothesis H2: ratio of population to personal 4231 use
+
+For $X=20$, the mean population:personal use ratio was 0.92, 89%CI[0.40, 1.63]. For $X=40$ it was 0.68, 89%CI[0.16, 1.41]. For $X=60$ it was 0.54, 89%CI[0.05, 1.25]. For all time windows, therefore, the ratio was not only not greater than one as was predicted, but the CIs are in all cases so wide that they encompass one. There is, however, a trend towards lower ratios with longer time windows, indicating that assuming longer time windows leads to greater reliance on personal information over population information.
+
+
+## Hypothesis H3: variation across managers and divisions
+
+Tables S7-S9 show that for $X=20$, $X=40$ and $X=60$, as for $X=30$, there is more varation in 4231 personal and population use across managers than randomised data, and more variation across divisions in personal 4231 use, but not across divisions in population 4231 use.
+
+```{r tableS7, echo = F, message = F}
+precis_sigmadiffs <- as.matrix(readRDS(file="modeloutputs/precis_sigmadiffsX20.rds"))
+
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pers_manager"] <- "Manager * personal 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pop_manager"] <- "Manager * population 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pers_division"] <- "Division * personal 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pop_division"] <- "Division * population 4231 use"
+
+knitr::kable(precis_sigmadiffs, caption="Tests of the differences between varying effects from the real data and varying effects from randomised data, to test hypothesis H3 with X=20 day time window. Values shown are real minus randomised standard deviations.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS8, echo = F, message = F}
+precis_sigmadiffs <- as.matrix(readRDS(file="modeloutputs/precis_sigmadiffsX40.rds"))
+
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pers_manager"] <- "Manager * personal 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pop_manager"] <- "Manager * population 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pers_division"] <- "Division * personal 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pop_division"] <- "Division * population 4231 use"
+
+knitr::kable(precis_sigmadiffs, caption="Tests of the differences between varying effects from the real data and varying effects from randomised data, to test hypothesis H3 with X=40 day time window. Values shown are real minus randomised standard deviations.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS9, echo = F, message = F}
+precis_sigmadiffs <- as.matrix(readRDS(file="modeloutputs/precis_sigmadiffsX60.rds"))
+
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pers_manager"] <- "Manager * personal 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pop_manager"] <- "Manager * population 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pers_division"] <- "Division * personal 4231 use"
+row.names(precis_sigmadiffs)[row.names(precis_sigmadiffs) == "diff_pop_division"] <- "Division * population 4231 use"
+
+knitr::kable(precis_sigmadiffs, caption="Tests of the differences between varying effects from the real data and varying effects from randomised data, to test hypothesis H3 with X=60 day time window. Values shown are real minus randomised standard deviations.", digits = 2, booktabs = T, linesep="")
+```
+
+## Hypothesis H4: population to personal use ratio and win rate
+
+Tables S10-S12 show, as for $X=30$, that there is no quadratic or linear relationship between manager win rate and population:personal use ratio for $X=20$, $X=40$ or $X=60$.
+
+```{r tableS10, echo = F, message = F}
+precis_manager <- as.matrix(readRDS(file="modeloutputs/precis_managerX20.rds"))
+
+knitr::kable(precis_manager, caption="Model estimates for the quadratic regression model with manager as unit of analysis, to test hypothesis H4 with X=20 day time window. Parameter a is the intercept, b1 is the linear coefficient and b2 the quadratic coefficient. Win rate is modelled as normally distributed with standard deviation sigma. See SI for priors.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS11, echo = F, message = F}
+precis_manager <- as.matrix(readRDS(file="modeloutputs/precis_managerX40.rds"))
+
+knitr::kable(precis_manager, caption="Model estimates for the quadratic regression model with manager as unit of analysis, to test hypothesis H4 with X=40 day time window. Parameter a is the intercept, b1 is the linear coefficient and b2 the quadratic coefficient. Win rate is modelled as normally distributed with standard deviation sigma. See SI for priors.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS12, echo = F, message = F}
+precis_manager <- as.matrix(readRDS(file="modeloutputs/precis_managerX60.rds"))
+
+knitr::kable(precis_manager, caption="Model estimates for the quadratic regression model with manager as unit of analysis, to test hypothesis H4 with X=60 day time window. Parameter a is the intercept, b1 is the linear coefficient and b2 the quadratic coefficient. Win rate is modelled as normally distributed with standard deviation sigma. See SI for priors.", digits = 2, booktabs = T, linesep="")
+```
+
+\newpage
+# References
