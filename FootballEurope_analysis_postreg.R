@@ -64,12 +64,18 @@ f$result[(f$homeGoalFT < f$awayGoalFT) & f$homeaway == "away"] <- "win"
 
 # collect team, managerName and goalFT to separate home and away stats
 f$team <- ifelse(f$homeaway == "home", f$homeTeam, f$awayTeam)
+f$opponent <- ifelse(f$homeaway == "away", f$homeTeam, f$awayTeam) # NEW
 f$manager <- ifelse(f$homeaway == "home", f$homeManagerName, f$awayManagerName)
 f$goalsScored <- ifelse(f$homeaway == "home", f$homeGoalFT, f$awayGoalFT)
 f$goalsConceded <- ifelse(f$homeaway == "home", f$awayGoalFT, f$homeGoalFT)
 
+# NEW: get opponent formation, taking advantage of fact that home and away are in same order
+f$opponent_formation <- NA
+f$opponent_formation[f$homeaway == "home"] <- f$formation[f$homeaway == "away"]
+f$opponent_formation[f$homeaway == "away"] <- f$formation[f$homeaway == "home"]
+
 # keep relevant variables, discard the rest
-f <- select(f, date, division, homeaway, formation, team, manager, goalsScored, goalsConceded, result)
+f <- select(f, date, division, homeaway, formation, team, opponent, opponent_formation, manager, goalsScored, goalsConceded, result)
 
 # typos / inconsistencies
 f$manager[f$manager == "Arsene Wenger"] <- "Arsène Wenger"
@@ -82,12 +88,15 @@ f$manager[f$manager == "Rafael Benítez"] <- "Rafael Benitez"
 # fill in two blanks (checked via wikipedia and sky sports)
 f$manager[f$manager == ""] <- "François Ciccolini"
 f$formation[is.na(f$formation)] <- "4231"
+f$opponent_formation[is.na(f$opponent_formation)] <- "4231"
 
 # make formations, divisions etc. factors
 f$homeaway <- factor(f$homeaway) 
 f$division <- factor(f$division) 
 f$formation <- factor(f$formation)
+f$opponent_formation <- factor(f$opponent_formation) # NEW
 f$team <- factor(f$team)
+f$opponent <- factor(f$opponent) # NEW
 f$manager <- factor(f$manager)
 f$result <- factor(f$result)
 
@@ -138,10 +147,8 @@ f$season <- factor(f$season)
 # create 4231 variable 0 or 1
 f$fourtwothreeone <- ifelse(f$formation == 4231, 1, 0)
 
-# create formation_reduced which has 4231, 433, 442 and other, for plotting
-f$formation_reduced <- as.character(f$formation)
-f$formation_reduced[f$formation_reduced != "433" & f$formation_reduced != "4231" & f$formation_reduced != "442"] <- "other"
-f$formation_reduced <- as.factor(f$formation_reduced)
+# NEW: same for opponent
+f$opponent4231 <- ifelse(f$opponent_formation == 4231, 1, 0)
 
 # create win variable 0 or 1
 f$win <- ifelse(f$result == "win", 1, 0)
@@ -184,6 +191,7 @@ for (i in 1:nbins) {
 }
 plot_data <- as.data.frame(plot_data)  # convert to dataframe
 plot_data$day <- 1:nbins * B
+plot_data <- plot_data[1:29,]  # new code for revision: remove last row which only has 20 days
 plot_data <- pivot_longer(plot_data, -day, names_to = "formation", values_to = "frequency", names_prefix = "f")  # convert from wide to long
 
 # all divisions
@@ -221,6 +229,8 @@ for (i in 1:5) {
   plot_data$division[plot_data$division == i] <- c("Bundesliga", "EPL", "La Liga", "Ligue 1", "Serie A")[i]
 }
 
+plot_data <- plot_data[plot_data$day < 900,]  # new code for revision: remove last row which only has 20 days
+
 # by division
 sep_divs <- ggplot() +
   theme_cowplot(12) +
@@ -243,10 +253,13 @@ X <- 30
 # create empty predictor variables
 f$pers_use <- NA  # frequency of that manager's use of 4231, for that season and division in the X-day window, centred on 0.5
 f$pop_use <- NA  # use frequency of 4231 in that division and season in the X-day window, centred on 0.5
+#f$pop_use_R <- NA  # use frequency of 4231 in that division and season in the X-day window, centred on 0.5, excluding own team
 f$pers_win <- NA  # manager's win rate with 4231 in that division and season in the X-day window, centred on mean win rate of non4231
 f$pop_win <- NA  # division-wide win rate with 4231 in that season in the X-day window, centred on mean win rate of non4231
+#f$pop_win_R <- NA  # division-wide win rate with 4231 in that season in the X-day window, centred on mean win rate of non4231, excluding own team
 f$pers_win_all <- NA  # manager's win rate for all their games, centred on mean win rate for all managers in that season and division
 f$team_strength <- NA  # proportion of games won by that team in a season, centred on mean win rate of all teams in that league
+f$opponent_strength <- NA  # NEW: proportion of games won by the opposing team in a season, centred on mean win rate of all teams in that league
 
 f$n_division <- NA  # variable to check how many games in window for game i
 f$n_manager <- NA  # variable to check how many games in window for manager of team in game i
@@ -274,17 +287,26 @@ for (i in 1:nrow(f)) {
     # mean games played using 4231 in window in that division
     f$pop_use[i] <- mean(f$fourtwothreeone[window_division]) - 0.5
     
+    # NEW: pop_use excluding own team
+    #f$pop_use_R[i] <- mean(f$fourtwothreeone[window_division & f$team != f$team[i]]) - 0.5
+    
     # mean games won with 4231 by that manager in the window, relative to non4231 win rate
     f$pers_win[i] <- mean(f[window_manager,]$win == 1 & f[window_manager,]$fourtwothreeone == 1) - mean(f[window_manager,]$win == 1 & f[window_manager,]$fourtwothreeone == 0)
     
     # mean number of games in which 4231 was played that were won, relative to mean number of non-4231 games that were won
     f$pop_win[i] <- mean(f[window_division & f$fourtwothreeone == 1,]$win) - mean(f[window_division & f$fourtwothreeone == 0,]$win)
     
+    # NEW: pop_win excluding own team
+    #f$pop_win_R[i] <- mean(f[window_division & f$fourtwothreeone == 1 & f$team != f$team[i],]$win) - mean(f[window_division & f$fourtwothreeone == 0 & f$team != f$team[i],]$win)
+    
     # mean games won by that manager in the window, relative to mean win rate of all managers
     f$pers_win_all[i] <- mean(f[window_manager,]$win) - mean(f[window_division,]$win)
     
     # mean games won by that team in the season, relative to overall win rate by all teams (not windowed)
-    f$team_strength[i] <-   mean(f[f$team == f$team[i] & f$season == f$season[i],]$win) - mean(f[f$division == f$division[i] & f$season == f$season[i],]$win)
+    f$team_strength[i] <- mean(f[f$team == f$team[i] & f$season == f$season[i],]$win) - mean(f[f$division == f$division[i] & f$season == f$season[i],]$win)
+    
+    # NEW: strength of opponents
+    f$opponent_strength[i] <- mean(f[f$opponent == f$opponent[i] & f$season == f$season[i],]$win) - mean(f[f$division == f$division[i] & f$season == f$season[i],]$win)
       
     }
 }
@@ -295,6 +317,10 @@ f$pers_useXpers_win_all <- f$pers_use * f$pers_win_all
 f$pop_useXpop_win <- f$pop_use * f$pop_win
 f$pop_useXpers_win_all <- f$pop_use * f$pers_win_all
 
+# NEW: use*win interactions using revised pop variables
+#f$pop_useXpop_win_R <- f$pop_use_R * f$pop_win_R
+#f$pop_useXpers_win_all_R <- f$pop_use_R * f$pers_win_all
+
 # remove temp vars
 rm(window_manager, window_division, first_day, i)  
 
@@ -304,7 +330,9 @@ f <- football_full[complete.cases(football_full), ]
 rownames(f) <- NULL  # reset row names
 f$manager <- factor(f$manager)  # re-factor as some managers have been lost, messes with rethinking later otherwise
 
-# gives n=16003 with X=30
+# gives n=16003 with X=30 (n=15988 with new _R variables)
+
+# ORIGINAL ANALYSES AS IN PREREG--------------------------------------
 
 # m1: null model with varying effects for division and manager, with homeaway and team_strength------
 dat_list <- list(
@@ -966,3 +994,764 @@ par(xpd=NA)
 text(-9.5,11,"B",cex=2)
 
 dev.off()
+
+# REVISED ANALYSIS R1 WITH POPULATION VARIABLES EXCLUDING OWN TEAM---------------
+
+# m1R1: null model with varying effects for division and manager, with homeaway and team_strength------
+dat_list <- list(
+  fourtwothreeone = as.integer(f$fourtwothreeone),
+  homeaway = as.integer(ifelse(f$homeaway == "home", 1, 2)), # home=1, away=2,
+  manager_id = as.integer(f$manager),
+  division_id = as.integer(f$division),
+  team_strength = f$team_strength
+)
+
+m1R1 <- ulam(
+  alist(
+    fourtwothreeone ~ dbinom( 1 , p ) ,
+    logit(p) <- a_homeaway[homeaway] + b_team_strength*team_strength + a_manager[manager_id]*sigma_manager + a_division[division_id]*sigma_division,
+    a_homeaway[homeaway] ~ dnorm( 0 , 1 ) ,
+    b_team_strength ~ dnorm( 0 , 1 ) ,
+    a_manager[manager_id] ~ dnorm( 0 , 1 ) ,
+    a_division[division_id] ~ dnorm( 0 , 1 ) ,
+    sigma_manager ~ dexp( 1 ) ,
+    sigma_division ~ dexp( 1 )
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+traceplot(m1R1)
+pairs(m1R1, depth = 2, pars = c("a_homeaway", "b_team_strength", "sigma_manager", "sigma_division"))
+precis(m1R1, depth = 2, pars = c("a_homeaway", "b_team_strength", "a_division", "sigma_manager", "sigma_division"))
+
+#                  mean   sd  5.5% 94.5% n_eff Rhat
+# a_homeaway[1]   -0.54 0.47 -1.24  0.26   980    1
+# a_homeaway[2]   -0.65 0.47 -1.35  0.13   981    1
+# b_team_strength -0.01 0.26 -0.43  0.40  1840    1
+# a_division[1]    0.60 0.49 -0.11  1.43   928    1
+# a_division[2]   -0.68 0.38 -1.31 -0.08  1227    1
+# a_division[3]    0.64 0.49 -0.08  1.48   939    1
+# a_division[4]   -0.16 0.38 -0.76  0.46   919    1
+# a_division[5]   -1.73 0.56 -2.67 -0.89  1817    1
+# sigma_manager    1.85 0.10  1.70  2.01   688    1
+# sigma_division   1.27 0.48  0.73  2.12  1418    1
+
+# save as RDS file, use readRDS to load
+saveRDS(m1R1, file="modelfits/m1R1.rds")
+#m1R1 <- readRDS("modelfits/m1R1.rds")
+
+# m2R1: personal variables model, varying slopes with pers_use------------------------
+# non-centred parameterisation
+dat_list <- list(
+  fourtwothreeone = as.integer(f$fourtwothreeone),
+  homeaway = as.integer(ifelse(f$homeaway == "home", 1, 2)), # home=1, away=2,
+  team_strength = f$team_strength,
+  manager_id = as.integer(f$manager),
+  division_id = as.integer(f$division),
+  pers_use = f$pers_use,
+  pers_win = f$pers_win,
+  pers_useXpers_win = f$pers_useXpers_win,
+  pers_useXpers_win_all = f$pers_useXpers_win_all
+)
+
+m2R1 <- ulam(
+  alist(
+    fourtwothreeone ~ dbinom( 1 , p ) ,
+    logit(p) <- a_homeaway[homeaway] + b_team_strength*team_strength + a_manager[manager_id,1] + a_manager[manager_id,2]*pers_use + a_division[division_id,1] + a_division[division_id,2]*pers_use + b_pers_use*pers_use + b_pers_win*pers_win + b_pers_useXpers_win*pers_useXpers_win + b_pers_useXpers_win_all*pers_useXpers_win_all,
+    
+    a_homeaway[homeaway] ~ dnorm( 0 , 1 ) ,
+    b_team_strength ~ dnorm( 0 , 1 ) ,
+    
+    # adaptive priors - non-centered
+    transpars> matrix[manager_id,2]:a_manager <-
+      compose_noncentered( sigma_manager , L_Rho_manager , z_manager ),
+    transpars> matrix[division_id,2]:a_division <-
+      compose_noncentered( sigma_division , L_Rho_division , z_division ),
+    
+    matrix[2,manager_id]:z_manager ~ normal( 0 , 1 ),
+    matrix[2,division_id]:z_division ~ normal( 0 , 1 ),
+    
+    b_pers_use ~ dnorm( 0 , 1 ) ,
+    b_pers_win ~ dnorm( 0 , 1 ) ,
+    b_pers_useXpers_win ~ dnorm( 0 , 1 ) ,
+    b_pers_useXpers_win_all ~ dnorm( 0 , 1 ) ,
+    
+    vector[2]:sigma_manager ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_manager ~ lkj_corr_cholesky( 2 ),
+    vector[2]:sigma_division ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_division ~ lkj_corr_cholesky( 2 )
+    
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+pairs(m2R1, pars = c("a_homeaway","b_team_strength", "b_pers_use", "b_pers_win", "b_pers_useXpers_win", "b_pers_useXpers_win_all"))
+
+precis(m2R1, depth = 2)
+# mean   sd  5.5% 94.5% n_eff Rhat
+# a_homeaway[1]           -0.10 0.25 -0.47  0.30   916    1
+# a_homeaway[2]           -0.22 0.25 -0.60  0.18   914    1
+# b_team_strength          0.07 0.26 -0.34  0.49  3089    1
+# b_pers_use               2.26 0.67  1.02  3.13  1628    1
+# b_pers_win               0.81 0.13  0.60  1.02  4495    1
+# b_pers_useXpers_win     -0.52 0.20 -0.84 -0.20  5301    1
+# b_pers_useXpers_win_all  0.06 0.34 -0.49  0.60  5046    1
+# sigma_manager[1]         0.66 0.06  0.56  0.76   731    1
+# sigma_manager[2]         1.30 0.14  1.09  1.52  1231    1
+# sigma_division[1]        0.50 0.22  0.25  0.89  1769    1
+# sigma_division[2]        1.34 0.60  0.65  2.44  1918    1
+
+
+# save as RDS file, use readRDS to load
+saveRDS(m2R1, file="modelfits/m2R1.rds")
+#m2R1 <- readRDS("modelfits/m2R1.rds")
+
+
+# m3R1: population variables model, varying slopes with pop use-----------------
+# non-centred parameterisation
+dat_list <- list(
+  fourtwothreeone = as.integer(f$fourtwothreeone),
+  homeaway = as.integer(ifelse(f$homeaway == "home", 1, 2)), # home=1, away=2
+  team_strength = f$team_strength,
+  manager_id = as.integer(f$manager),
+  division_id = as.integer(f$division),
+  pop_use = f$pop_use_R,
+  pop_win = f$pop_win_R,
+  pop_useXpop_win = f$pop_useXpop_win_R,
+  pop_useXpers_win_all = f$pop_useXpers_win_all_R
+)
+
+m3R1 <- ulam(
+  alist(
+    fourtwothreeone ~ dbinom( 1 , p ) ,
+    logit(p) <- a_homeaway[homeaway] + b_team_strength*team_strength + a_manager[manager_id,1] + a_manager[manager_id,2]*pop_use + a_division[division_id,1] + a_division[division_id,2]*pop_use + b_pop_use*pop_use + b_pop_win*pop_win + b_pop_useXpop_win*pop_useXpop_win + b_pop_useXpers_win_all*pop_useXpers_win_all,
+    
+    a_homeaway[homeaway] ~ dnorm( 0 , 1 ) ,
+    b_team_strength ~ dnorm( 0 , 1 ) ,
+    
+    # adaptive priors - non-centered
+    transpars> matrix[manager_id,2]:a_manager <-
+      compose_noncentered( sigma_manager , L_Rho_manager , z_manager ),
+    transpars> matrix[division_id,2]:a_division <-
+      compose_noncentered( sigma_division , L_Rho_division , z_division ),
+    
+    matrix[2,manager_id]:z_manager ~ normal( 0 , 1 ),
+    matrix[2,division_id]:z_division ~ normal( 0 , 1 ),
+    
+    b_pop_use ~ dnorm( 0 , 1 ) ,
+    b_pop_win ~ dnorm( 0 , 1 ) ,
+    b_pop_useXpop_win ~ dnorm( 0 , 1 ) ,
+    b_pop_useXpers_win_all ~ dnorm( 0 , 1 ) ,
+    
+    vector[2]:sigma_manager ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_manager ~ lkj_corr_cholesky( 2 ),
+    vector[2]:sigma_division ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_division ~ lkj_corr_cholesky( 2 )
+    
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+pairs(m3R1, pars = c("a_homeaway", "b_team_strength", "b_pop_use", "b_pop_win", "b_pop_useXpop_win", "b_pop_useXpers_win_all"))  
+
+precis(m3R1, depth = 2)
+#                         mean   sd  5.5% 94.5% n_eff Rhat
+# a_homeaway[1]          -0.36 0.43 -1.03  0.35  1200    1
+# a_homeaway[2]          -0.48 0.43 -1.15  0.23  1186    1
+# b_team_strength        -0.01 0.29 -0.47  0.46  2966    1
+# b_pop_use               1.77 0.69  0.55  2.74  1403    1
+# b_pop_win              -0.06 0.18 -0.35  0.22  5748    1
+# b_pop_useXpop_win      -0.43 0.60 -1.39  0.52  5704    1
+# b_pop_useXpers_win_all  0.30 0.43 -0.38  0.98  8048    1
+# sigma_manager[1]        1.88 0.12  1.70  2.07   858    1
+# sigma_manager[2]        5.83 0.46  5.13  6.60  1199    1
+# sigma_division[1]       1.11 0.45  0.58  1.94  1807    1
+# sigma_division[2]       1.12 0.88  0.09  2.75  1085    1
+
+# save as RDS file, use readRDS to load
+saveRDS(m3R1, file="modelfits/m3R1.rds")
+#m3R1 <- readRDS("modelfits/m3R1.rds")
+
+# m4R1: full model, varying slopes with pers & pop use-----------------
+# non-centred parameterisation
+dat_list <- list(
+  fourtwothreeone = as.integer(f$fourtwothreeone),
+  homeaway = as.integer(ifelse(f$homeaway == "home", 1, 2)), # home=1, away=2
+  team_strength = f$team_strength,
+  manager_id = as.integer(f$manager),
+  division_id = as.integer(f$division),
+  pers_use = f$pers_use,
+  pers_win = f$pers_win,
+  pers_useXpers_win = f$pers_useXpers_win,
+  pers_useXpers_win_all = f$pers_useXpers_win_all,
+  pop_use = f$pop_use_R,
+  pop_win = f$pop_win_R,
+  pop_useXpop_win = f$pop_useXpop_win_R,
+  pop_useXpers_win_all = f$pop_useXpers_win_all_R
+)
+
+m4R1 <- ulam(
+  alist(
+    fourtwothreeone ~ dbinom( 1 , p ) ,
+    
+    logit(p) <- a_homeaway[homeaway] + b_team_strength*team_strength + a_manager[manager_id,1] + a_manager[manager_id,2]*pers_use + a_manager[manager_id,3]*pop_use + a_division[division_id,1] + a_division[division_id,2]*pers_use + a_division[division_id,3]*pop_use + b_vars,
+    
+    b_vars <- b_pers_use*pers_use + b_pers_win*pers_win + b_pers_useXpers_win*pers_useXpers_win + b_pers_useXpers_win_all*pers_useXpers_win_all + b_pop_use*pop_use + b_pop_win*pop_win + b_pop_useXpop_win * pop_useXpop_win + b_pop_useXpers_win_all * pop_useXpers_win_all,
+    
+    a_homeaway[homeaway] ~ dnorm( 0 , 1 ) ,
+    b_team_strength ~ dnorm( 0 , 1 ) ,
+    
+    # adaptive priors - non-centered
+    transpars> matrix[manager_id,3]:a_manager <-
+      compose_noncentered( sigma_manager , L_Rho_manager , z_manager ),
+    transpars> matrix[division_id,3]:a_division <-
+      compose_noncentered( sigma_division , L_Rho_division , z_division ),
+    
+    matrix[3,manager_id]:z_manager ~ normal( 0 , 1 ),
+    matrix[3,division_id]:z_division ~ normal( 0 , 1 ),
+    
+    b_pers_use ~ dnorm( 0 , 1 ) ,
+    b_pers_win ~ dnorm( 0 , 1 ) ,
+    b_pers_useXpers_win ~ dnorm( 0 , 1 ) ,
+    b_pers_useXpers_win_all ~ dnorm( 0 , 1 ) ,
+    b_pop_use ~ dnorm( 0 , 1 ) ,
+    b_pop_win ~ dnorm( 0 , 1 ) ,
+    b_pop_useXpop_win ~ dnorm( 0 , 1 ) ,
+    b_pop_useXpers_win_all ~ dnorm( 0 , 1 ) ,
+    
+    vector[3]:sigma_manager ~ dexp(1),
+    cholesky_factor_corr[3]:L_Rho_manager ~ lkj_corr_cholesky( 2 ),
+    vector[3]:sigma_division ~ dexp(1),
+    cholesky_factor_corr[3]:L_Rho_division ~ lkj_corr_cholesky( 2 )
+    
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+pairs(m4R1, pars = c("a_homeaway", "b_team_strength", "b_pers_use", "b_pers_win", "b_pers_useXpers_win", "b_pers_useXpers_win_all", "b_pop_use", "b_pop_win", "b_pop_useXpop_win", "b_pop_useXpers_win_all"))
+
+precis(m4R1, depth = 2)
+#                          mean   sd  5.5% 94.5% n_eff Rhat
+# a_homeaway[1]           -0.02 0.16 -0.27  0.21  1403    1
+# a_homeaway[2]           -0.14 0.16 -0.40  0.09  1414    1
+# b_team_strength          0.03 0.27 -0.42  0.46  3268    1
+# b_pers_use               2.12 0.67  0.90  2.99  1623    1
+# b_pers_win               0.84 0.13  0.63  1.05  5346    1
+# b_pers_useXpers_win     -0.64 0.21 -0.97 -0.32  5038    1
+# b_pers_useXpers_win_all  0.04 0.34 -0.51  0.58  4179    1
+# b_pop_use                1.27 0.46  0.49  1.94  3069    1
+# b_pop_win               -0.15 0.20 -0.47  0.17  5059    1
+# b_pop_useXpop_win       -0.04 0.63 -1.05  0.98  6556    1
+# b_pop_useXpers_win_all  -0.96 0.48 -1.73 -0.20  6147    1
+# sigma_manager[1]         0.72 0.07  0.61  0.84  1140    1
+# sigma_manager[2]         1.24 0.14  1.01  1.48  1160    1
+# sigma_manager[3]         1.95 0.44  1.27  2.61   319    1
+# sigma_division[1]        0.26 0.19  0.05  0.59  1480    1
+# sigma_division[2]        1.32 0.66  0.58  2.54  1602    1
+# sigma_division[3]        0.64 0.49  0.05  1.54  2064    1
+
+# save as RDS file, use readRDS to load
+saveRDS(m4R1, file="modelfits/m4R1.rds")
+#m4R1 <- readRDS("modelfits/m4R1.rds")
+
+# test hypotheses----------------------
+
+# H1------
+# the full model (m4R1) will be the best supported model as measured using WAIC, relative to personal-only, population-only and null models (m1R1, m2R1 and m3R1)
+mcomparisonR1 <- compare(m1R1, m2R1, m3R1, m4R1)
+mcomparisonR1
+
+# supported; almost identical to original analysis
+# WAIC pWAIC  dWAIC weight     SE    dSE
+# m4R 12263.4 338.7    0.0      1 144.10     NA
+# m2R 12336.3 297.6   72.9      0 144.13  15.21
+# m3R 13691.9 357.0 1428.5      0 136.00  92.38
+# m1R 14326.3 251.6 2062.9      0 134.84 101.64
+
+
+saveRDS(mcomparisonR1, file="modeloutputs/mcomparisonR1.rds")
+# mcomparisonR1 <- readRDS(file="modeloutputs/mcomparisonR1.rds")
+
+# H1. in the full model, there are effects of (a) personal 4231 use and (b) win rate, (c) population 4231 use and (d) win rate, and interactions between (e) personal 4231 use and win, and between (f) population 4231 use and win rates. Effects are indicated by the parameter estimates' 89% CI not including zero in the full model.
+precis_m4R1 <- precis(m4R, prob = 0.89, depth = 2)
+precis_m4R1
+
+saveRDS(precis_m4R1, file="modeloutputs/precis_m4R1.rds")
+# precis_m4R1 <- readRDS(file="modeloutputs/precis_m4R1.rds")
+
+# almost identical to original estimates
+#                          mean   sd  5.5% 94.5% n_eff Rhat
+# b_pers_use               2.12 0.67  0.90  2.99  1623    1 (a) yes
+# b_pers_win               0.84 0.13  0.63  1.05  5346    1 (b) yes
+# b_pers_useXpers_win     -0.64 0.21 -0.97 -0.32  5038    1 (e) yes
+# b_pers_useXpers_win_all  0.04 0.34 -0.51  0.58  4179    1
+# b_pop_use                1.27 0.46  0.49  1.94  3069    1 (c) yes
+# b_pop_win               -0.15 0.20 -0.47  0.17  5059    1 (d) no
+# b_pop_useXpop_win       -0.04 0.63 -1.05  0.98  6556    1 (f) no
+# b_pop_useXpers_win_all  -0.96 0.48 -1.73 -0.20  6147    1
+# b_team_strength          0.03 0.27 -0.39  0.46  3150    1
+
+# H2----
+# The ratio of population : personal use is greater than 1, indicating greater reliance on social information than personal information
+post <- extract.samples(m4R1)
+round(c(mean(post$b_pop_use / post$b_pers_use), PI(post$b_pop_use / post$b_pers_use, prob = 0.89)), 2)
+# No, opposite: mean 0.79, but very uncertain
+#        5%  94% 
+# 0.79 0.21 1.48
+# v. similar to original analyses
+
+# H3----
+# There is more variation between (a) managers in personal info use, (b) managers in population info use, (c) divisions in personal info use, and (d) divisions in population info use, than there is in a model of dummy data with randomised formation and win rates across managers and divisions, as indicated by sigma_manager[2,3] and sigma_division[2,3]
+
+post.d <- extract.samples(m4dR1) # run dummy model using code above
+post.r <- extract.samples(m4R1) # real data
+
+sigma_diffs <- data.frame(
+  diff_pers_manager=post.r$sigma_manager[,2] - post.d$sigma_manager[,2], 
+  diff_pop_manager=post.r$sigma_manager[,3] - post.d$sigma_manager[,3], 
+  diff_pers_division=post.r$sigma_division[,2] - post.d$sigma_division[,2], 
+  diff_pop_division=post.r$sigma_division[,3] - post.d$sigma_division[,3])
+
+precis_sigmadiffsR1 <- precis(sigma_diffs)  # differences in all except population use & division
+precis_sigmadiffsR1
+plot(precis_sigmadiffsR1)
+
+saveRDS(precis_sigmadiffsR1[,1:4], file="modeloutputs/precis_sigmadiffsR1.rds")
+# precis_sigmadiffsR1 <- readRDS(file="precis_sigmadiffsR1.rds")
+
+# H4----
+# There is an n-shaped relationship between information use ratio and personal win rate across managers, i.e. managers who combine personal and population information do better than managers who predominantly use one or the other. Model this with unit of analysis as a manager, predicting their personal win rate from their population:personal use ratio squared (negative b^2 coefficient in a quadratic polynomial)
+
+post <- extract.samples(m4R1)
+
+# mean pop use rate / mean pers use rate  NB ADDED INV_LOGIT UNLIKE PREREG VERSION
+info_ratio <- apply(inv_logit(post$a_manager[,,3]), 2, mean) / apply(inv_logit(post$a_manager[,,2]), 2, mean)
+# info_ratio <- standardize(info_ratio)  # standardise NB REMOVED THIS TOO
+
+win_rate <- NA
+for (i in 1:length(levels(f$manager))) win_rate[i] <- mean(f[f$manager == levels(f$manager)[i],]$win)
+win_rate <- standardize(win_rate)  # relative to mean win_rate
+
+m <- data.frame(win_rate = win_rate, info_ratio = info_ratio, info_ratio_sq = info_ratio^2)
+
+dat_list <- list(
+  info_ratio = m$info_ratio,
+  win_rate = m$win_rate,
+  info_ratio_sq = m$info_ratio_sq
+)
+
+m.manager <- ulam(
+  alist(
+    win_rate ~ dnorm( mu , sigma ) ,
+    mu <- a + b1*info_ratio + b2*info_ratio_sq,
+    a ~ normal( 0 , 1.5 ),
+    b1 ~ normal( 0 , 0.2),
+    b2 ~ normal( -0.1 , 0.2),
+    sigma ~ dexp( 1 )
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+# prior predictive simulation: slightly more likely to be n-shaped, but still allow u-shaped
+# N <- length(levels(f$manager))
+# a <- rnorm(N, 0, 1.5)
+# b1 <- rnorm(N, 0, 0.2)
+# b2 <- rnorm(N, -0.1, 0.2)
+# plot( NULL , xlim=range(info_ratio) , ylim=range(win_rate) ,
+#       xlab="info_ratio" , ylab="win_rate" )
+# #xbar <- mean(d2$weight)
+# for ( i in 1:N ) curve( a[i] + b1[i]*x + b2[i]*x^2,
+#                         from=min(info_ratio) , to=max(info_ratio) , add=TRUE ,
+#                         col=col.alpha("black",0.2) )
+
+precis_managerR1 <- precis(m.manager)
+precis_managerR1  # H4 not supported: very slightly positive b2 coefficient. Mostly no relationship.
+#        mean   sd  5.5% 94.5% n_eff Rhat
+# a      0.03 0.14 -0.19  0.26  1778    1
+# b1    -0.15 0.18 -0.44  0.14  1476    1
+# b2     0.09 0.07 -0.02  0.20  1664    1
+# sigma  1.00 0.04  0.94  1.06  2329    1
+
+saveRDS(precis_managerR1[,1:4], file="modeloutputs/precis_managerR.rds")
+
+# REVISED ANALYSIS R2 WITH CONTROLS FOR OPPONENT STRENGTH AND FORMATION---------------
+
+# m1R2: null model with varying effects for division and manager, with homeaway and team_strength------
+dat_list <- list(
+  fourtwothreeone = as.integer(f$fourtwothreeone),
+  homeaway = as.integer(ifelse(f$homeaway == "home", 1, 2)), # home=1, away=2,
+  manager_id = as.integer(f$manager),
+  division_id = as.integer(f$division),
+  team_strength = f$team_strength,
+  opponent_strength = f$opponent_strength,
+  opponent4231 = f$opponent4231
+)
+
+m1R2 <- ulam(
+  alist(
+    fourtwothreeone ~ dbinom( 1 , p ) ,
+    logit(p) <- a_homeaway[homeaway] + b_team_strength*team_strength + b_opponent_strength*opponent_strength + b_opponent4231*opponent4231 + a_manager[manager_id]*sigma_manager + a_division[division_id]*sigma_division,
+    a_homeaway[homeaway] ~ dnorm( 0 , 1 ) ,
+    b_team_strength ~ dnorm( 0 , 1 ) ,
+    b_opponent_strength ~ dnorm( 0 , 1 ) ,
+    b_opponent4231 ~ dnorm( 0 , 1 ) ,
+    a_manager[manager_id] ~ dnorm( 0 , 1 ) ,
+    a_division[division_id] ~ dnorm( 0 , 1 ) ,
+    sigma_manager ~ dexp( 1 ) ,
+    sigma_division ~ dexp( 1 )
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+#pairs(m1R2, depth = 2, pars = c("a_homeaway", "b_team_strength", "sigma_manager", "sigma_division"))
+precis(m1R2, depth = 2, pars = c("a_homeaway", "b_team_strength", "b_opponent_strength", "b_opponent4231", "a_division", "sigma_manager", "sigma_division"))
+
+#                      mean   sd  5.5% 94.5% n_eff Rhat
+# a_homeaway[1]       -0.62 0.46 -1.30  0.12   951 1.01
+# a_homeaway[2]       -0.74 0.46 -1.42  0.00   953 1.01
+# b_team_strength     -0.03 0.26 -0.46  0.39  1681 1.00
+# b_opponent_strength  0.58 0.14  0.35  0.80  7165 1.00  more likely to use 4231 against stronger opponents
+# b_opponent4231       0.23 0.04  0.16  0.30  6666 1.00  and against others playing 4231
+# a_division[1]        0.59 0.48 -0.11  1.41   961 1.00
+# a_division[2]       -0.72 0.38 -1.34 -0.14  1151 1.00
+# a_division[3]        0.59 0.48 -0.10  1.41   837 1.00
+# a_division[4]       -0.16 0.38 -0.76  0.45   991 1.00
+# a_division[5]       -1.69 0.56 -2.63 -0.84  1529 1.00
+# sigma_manager        1.85 0.10  1.70  2.02   632 1.00
+# sigma_division       1.25 0.48  0.71  2.12  1316 1.00
+
+# save as RDS file, use readRDS to load
+saveRDS(m1R2, file="modelfits/m1R2.rds")
+#m1R2 <- readRDS("modelfits/m1R2.rds")
+
+# m2R2: personal variables model, varying slopes with pers_use------------------------
+# non-centred parameterisation
+dat_list <- list(
+  fourtwothreeone = as.integer(f$fourtwothreeone),
+  homeaway = as.integer(ifelse(f$homeaway == "home", 1, 2)), # home=1, away=2,
+  team_strength = f$team_strength,
+  opponent_strength = f$opponent_strength,
+  opponent4231 = f$opponent4231,
+  manager_id = as.integer(f$manager),
+  division_id = as.integer(f$division),
+  pers_use = f$pers_use,
+  pers_win = f$pers_win,
+  pers_useXpers_win = f$pers_useXpers_win,
+  pers_useXpers_win_all = f$pers_useXpers_win_all
+)
+
+m2R2 <- ulam(
+  alist(
+    fourtwothreeone ~ dbinom( 1 , p ) ,
+    logit(p) <- a_homeaway[homeaway] + b_team_strength*team_strength + b_opponent_strength*opponent_strength + b_opponent4231*opponent4231 + a_manager[manager_id,1] + a_manager[manager_id,2]*pers_use + a_division[division_id,1] + a_division[division_id,2]*pers_use + b_pers_use*pers_use + b_pers_win*pers_win + b_pers_useXpers_win*pers_useXpers_win + b_pers_useXpers_win_all*pers_useXpers_win_all,
+    
+    a_homeaway[homeaway] ~ dnorm( 0 , 1 ) ,
+    b_team_strength ~ dnorm( 0 , 1 ) ,
+    b_opponent_strength ~ dnorm( 0 , 1 ) ,
+    b_opponent4231 ~ dnorm( 0 , 1 ) ,
+    
+    # adaptive priors - non-centered
+    transpars> matrix[manager_id,2]:a_manager <-
+      compose_noncentered( sigma_manager , L_Rho_manager , z_manager ),
+    transpars> matrix[division_id,2]:a_division <-
+      compose_noncentered( sigma_division , L_Rho_division , z_division ),
+    
+    matrix[2,manager_id]:z_manager ~ normal( 0 , 1 ),
+    matrix[2,division_id]:z_division ~ normal( 0 , 1 ),
+    
+    b_pers_use ~ dnorm( 0 , 1 ) ,
+    b_pers_win ~ dnorm( 0 , 1 ) ,
+    b_pers_useXpers_win ~ dnorm( 0 , 1 ) ,
+    b_pers_useXpers_win_all ~ dnorm( 0 , 1 ) ,
+    
+    vector[2]:sigma_manager ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_manager ~ lkj_corr_cholesky( 2 ),
+    vector[2]:sigma_division ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_division ~ lkj_corr_cholesky( 2 )
+    
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+pairs(m2R2, pars = c("a_homeaway","b_team_strength", "b_opponent_strength", "b_opponent4231", "b_pers_use", "b_pers_win", "b_pers_useXpers_win", "b_pers_useXpers_win_all"))
+
+precis(m2R2, depth = 2)
+#                          mean   sd  5.5% 94.5% n_eff Rhat
+# a_homeaway[1]           -0.18 0.24 -0.53  0.20  1126 1.00
+# a_homeaway[2]           -0.31 0.23 -0.66  0.07  1150 1.00
+# b_team_strength          0.04 0.26 -0.37  0.45  3379 1.00
+# b_opponent_strength      0.78 0.16  0.52  1.04  6760 1.00
+# b_opponent4231           0.17 0.05  0.09  0.25  5460 1.00
+# b_pers_use               2.27 0.69  0.99  3.18  1405 1.00
+# b_pers_win               0.81 0.13  0.59  1.02  4348 1.00
+# b_pers_useXpers_win     -0.49 0.20 -0.81 -0.17  4747 1.00
+# b_pers_useXpers_win_all  0.06 0.35 -0.48  0.62  4561 1.00
+# sigma_manager[1]         0.65 0.07  0.55  0.76   671 1.01
+# sigma_manager[2]         1.32 0.14  1.10  1.54  1116 1.00
+# sigma_division[1]        0.47 0.22  0.23  0.85  1560 1.00
+# sigma_division[2]        1.34 0.63  0.64  2.52  1455 1.00
+
+
+# save as RDS file, use readRDS to load
+saveRDS(m2R2, file="modelfits/m2R2.rds")
+#m2R2 <- readRDS("modelfits/m2R2.rds")
+
+
+# m3R2: population variables model, varying slopes with pop use-----------------
+# non-centred parameterisation
+dat_list <- list(
+  fourtwothreeone = as.integer(f$fourtwothreeone),
+  homeaway = as.integer(ifelse(f$homeaway == "home", 1, 2)), # home=1, away=2
+  team_strength = f$team_strength,
+  opponent_strength = f$opponent_strength,
+  opponent4231 = f$opponent4231,
+  manager_id = as.integer(f$manager),
+  division_id = as.integer(f$division),
+  pop_use = f$pop_use,
+  pop_win = f$pop_win,
+  pop_useXpop_win = f$pop_useXpop_win,
+  pop_useXpers_win_all = f$pop_useXpers_win_all
+)
+
+m3R2 <- ulam(
+  alist(
+    fourtwothreeone ~ dbinom( 1 , p ) ,
+    logit(p) <- a_homeaway[homeaway] + b_team_strength*team_strength + b_opponent_strength*opponent_strength + b_opponent4231*opponent4231 + a_manager[manager_id,1] + a_manager[manager_id,2]*pop_use + a_division[division_id,1] + a_division[division_id,2]*pop_use + b_pop_use*pop_use + b_pop_win*pop_win + b_pop_useXpop_win*pop_useXpop_win + b_pop_useXpers_win_all*pop_useXpers_win_all,
+    
+    a_homeaway[homeaway] ~ dnorm( 0 , 1 ) ,
+    b_team_strength ~ dnorm( 0 , 1 ) ,
+    b_opponent_strength ~ dnorm( 0 , 1 ) ,
+    b_opponent4231 ~ dnorm( 0 , 1 ) ,
+    
+    # adaptive priors - non-centered
+    transpars> matrix[manager_id,2]:a_manager <-
+      compose_noncentered( sigma_manager , L_Rho_manager , z_manager ),
+    transpars> matrix[division_id,2]:a_division <-
+      compose_noncentered( sigma_division , L_Rho_division , z_division ),
+    
+    matrix[2,manager_id]:z_manager ~ normal( 0 , 1 ),
+    matrix[2,division_id]:z_division ~ normal( 0 , 1 ),
+    
+    b_pop_use ~ dnorm( 0 , 1 ) ,
+    b_pop_win ~ dnorm( 0 , 1 ) ,
+    b_pop_useXpop_win ~ dnorm( 0 , 1 ) ,
+    b_pop_useXpers_win_all ~ dnorm( 0 , 1 ) ,
+    
+    vector[2]:sigma_manager ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_manager ~ lkj_corr_cholesky( 2 ),
+    vector[2]:sigma_division ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_division ~ lkj_corr_cholesky( 2 )
+    
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+pairs(m3R2, pars = c("a_homeaway", "b_team_strength", "b_opponent_strength", "b_opponent4231", "b_pop_use", "b_pop_win", "b_pop_useXpop_win", "b_pop_useXpers_win_all"))  
+
+precis(m3R2, depth = 2)
+#                         mean   sd  5.5% 94.5% n_eff Rhat
+# a_homeaway[1]          -0.21 0.37 -0.78  0.39   932 1.00
+# a_homeaway[2]          -0.33 0.37 -0.91  0.27   936 1.00
+# b_team_strength        -0.11 0.30 -0.58  0.38  2382 1.00
+# b_opponent_strength     0.64 0.15  0.40  0.88  7216 1.00
+# b_opponent4231          0.13 0.05  0.06  0.20  6065 1.00
+# b_pop_use               1.53 1.02 -0.12  3.13  2189 1.00
+# b_pop_win               0.34 0.19  0.04  0.64  4919 1.00
+# b_pop_useXpop_win      -0.43 0.66 -1.46  0.64  5751 1.00
+# b_pop_useXpers_win_all  0.54 0.43 -0.15  1.23  6643 1.00
+# sigma_manager[1]        1.90 0.12  1.71  2.10   729 1.01
+# sigma_manager[2]        5.75 0.46  5.06  6.53  1086 1.00
+# sigma_division[1]       0.72 0.31  0.36  1.27  1339 1.00
+# sigma_division[2]       3.55 1.20  1.83  5.62  1020 1.01
+
+# save as RDS file, use readRDS to load
+saveRDS(m3R2, file="modelfits/m3R2.rds")
+#m3R2 <- readRDS("modelfits/m3R2.rds")
+
+# m4R2: full model, varying slopes with pers & pop use-----------------
+# non-centred parameterisation
+dat_list <- list(
+  fourtwothreeone = as.integer(f$fourtwothreeone),
+  homeaway = as.integer(ifelse(f$homeaway == "home", 1, 2)), # home=1, away=2
+  team_strength = f$team_strength,
+  opponent_strength = f$opponent_strength,
+  opponent4231 = f$opponent4231,
+  manager_id = as.integer(f$manager),
+  division_id = as.integer(f$division),
+  pers_use = f$pers_use,
+  pers_win = f$pers_win,
+  pers_useXpers_win = f$pers_useXpers_win,
+  pers_useXpers_win_all = f$pers_useXpers_win_all,
+  pop_use = f$pop_use,
+  pop_win = f$pop_win,
+  pop_useXpop_win = f$pop_useXpop_win,
+  pop_useXpers_win_all = f$pop_useXpers_win_all
+)
+
+m4R2 <- ulam(
+  alist(
+    fourtwothreeone ~ dbinom( 1 , p ) ,
+    
+    logit(p) <- a_homeaway[homeaway] + b_team_strength*team_strength + b_opponent_strength*opponent_strength + b_opponent4231*opponent4231 + a_manager[manager_id,1] + a_manager[manager_id,2]*pers_use + a_manager[manager_id,3]*pop_use + a_division[division_id,1] + a_division[division_id,2]*pers_use + a_division[division_id,3]*pop_use + b_vars,
+    
+    b_vars <- b_pers_use*pers_use + b_pers_win*pers_win + b_pers_useXpers_win*pers_useXpers_win + b_pers_useXpers_win_all*pers_useXpers_win_all + b_pop_use*pop_use + b_pop_win*pop_win + b_pop_useXpop_win * pop_useXpop_win + b_pop_useXpers_win_all * pop_useXpers_win_all,
+    
+    a_homeaway[homeaway] ~ dnorm( 0 , 1 ) ,
+    b_team_strength ~ dnorm( 0 , 1 ) ,
+    b_opponent_strength ~ dnorm( 0 , 1 ) ,
+    b_opponent4231 ~ dnorm( 0 , 1 ) ,
+    
+    # adaptive priors - non-centered
+    transpars> matrix[manager_id,3]:a_manager <-
+      compose_noncentered( sigma_manager , L_Rho_manager , z_manager ),
+    transpars> matrix[division_id,3]:a_division <-
+      compose_noncentered( sigma_division , L_Rho_division , z_division ),
+    
+    matrix[3,manager_id]:z_manager ~ normal( 0 , 1 ),
+    matrix[3,division_id]:z_division ~ normal( 0 , 1 ),
+    
+    b_pers_use ~ dnorm( 0 , 1 ) ,
+    b_pers_win ~ dnorm( 0 , 1 ) ,
+    b_pers_useXpers_win ~ dnorm( 0 , 1 ) ,
+    b_pers_useXpers_win_all ~ dnorm( 0 , 1 ) ,
+    b_pop_use ~ dnorm( 0 , 1 ) ,
+    b_pop_win ~ dnorm( 0 , 1 ) ,
+    b_pop_useXpop_win ~ dnorm( 0 , 1 ) ,
+    b_pop_useXpers_win_all ~ dnorm( 0 , 1 ) ,
+    
+    vector[3]:sigma_manager ~ dexp(1),
+    cholesky_factor_corr[3]:L_Rho_manager ~ lkj_corr_cholesky( 2 ),
+    vector[3]:sigma_division ~ dexp(1),
+    cholesky_factor_corr[3]:L_Rho_division ~ lkj_corr_cholesky( 2 )
+    
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+pairs(m4R2, pars = c("a_homeaway", "b_team_strength", "b_opponent_strength", "b_opponent4231", "b_pers_use", "b_pers_win", "b_pers_useXpers_win", "b_pers_useXpers_win_all", "b_pop_use", "b_pop_win", "b_pop_useXpop_win", "b_pop_useXpers_win_all"))
+
+precis(m4R2, depth = 2)
+#                          mean   sd  5.5% 94.5% n_eff Rhat
+# a_homeaway[1]           -0.07 0.16 -0.32  0.17   908 1.00
+# a_homeaway[2]           -0.21 0.16 -0.46  0.05   898 1.00
+# b_team_strength          0.00 0.27 -0.43  0.42  2983 1.00
+# b_opponent_strength      0.79 0.16  0.55  1.04  7953 1.00
+# b_opponent4231           0.14 0.05  0.06  0.21  6945 1.00
+# b_pers_use               2.09 0.63  0.97  2.94  1813 1.00
+# b_pers_win               0.84 0.13  0.63  1.06  4364 1.00
+# b_pers_useXpers_win     -0.62 0.21 -0.95 -0.28  5501 1.00
+# b_pers_useXpers_win_all  0.11 0.35 -0.45  0.66  4187 1.00
+# b_pop_use                1.27 0.47  0.45  1.94  2017 1.00
+# b_pop_win               -0.11 0.20 -0.43  0.22  5658 1.00
+# b_pop_useXpop_win       -0.59 0.66 -1.64  0.47  6790 1.00
+# b_pop_useXpers_win_all  -1.12 0.51 -1.94 -0.31  6576 1.00
+# sigma_manager[1]         0.72 0.08  0.60  0.85  1025 1.00
+# sigma_manager[2]         1.25 0.14  1.02  1.48   941 1.01
+# sigma_manager[3]         1.99 0.50  1.22  2.70   193 1.01
+# sigma_division[1]        0.27 0.19  0.05  0.59  1272 1.00
+# sigma_division[2]        1.25 0.61  0.55  2.38  1858 1.00
+# sigma_division[3]        0.66 0.52  0.06  1.63  1625 1.00
+
+# save as RDS file, use readRDS to load
+saveRDS(m4R2, file="modelfits/m4R2.rds")
+#m4R2 <- readRDS("modelfits/m4R2.rds")
+
+# test hypotheses----------------------
+
+# H1------
+# the full model (m4R2) will be the best supported model as measured using WAIC, relative to personal-only, population-only and null models (m1R2, m2R2 and m3R2)
+mcomparisonR2 <- compare(m1R2, m2R2, m3R2, m4R2)
+mcomparisonR2
+
+# supported; almost identical to original analysis
+#         WAIC pWAIC  dWAIC weight     SE    dSE
+# m4R2 12242.5 339.2    0.0      1 144.06     NA
+# m2R2 12312.9 299.6   70.4      0 144.10  14.60
+# m3R2 13525.1 359.5 1282.6      0 137.34  88.33
+# m1R2 14291.8 252.8 2049.3      0 135.20 101.61
+
+
+saveRDS(mcomparisonR2, file="modeloutputs/mcomparisonR2.rds")
+# mcomparisonR2 <- readRDS(file="modeloutputs/mcomparisonR2.rds")
+
+# H1. in the full model, there are effects of (a) personal 4231 use and (b) win rate, (c) population 4231 use and (d) win rate, and interactions between (e) personal 4231 use and win, and between (f) population 4231 use and win rates. Effects are indicated by the parameter estimates' 89% CI not including zero in the full model.
+precis_m4R2 <- precis(m4R2, prob = 0.89, depth = 2)
+precis_m4R2
+
+saveRDS(precis_m4R2, file="modeloutputs/precis_m4R2.rds")
+# precis_m4R2 <- readRDS(file="modeloutputs/precis_m4R2.rds")
+
+# almost identical to original estimates (see above)
+
+
+# H2----
+# The ratio of population : personal use is greater than 1, indicating greater reliance on social information than personal information
+post <- extract.samples(m4R)
+round(c(mean(post$b_pop_use / post$b_pers_use), PI(post$b_pop_use / post$b_pers_use, prob = 0.89)), 2)
+# No, opposite: mean -0.53, but mean is misleading due to extreme values. PIs are similar.
+#            5%   94% 
+#   -0.53  0.20  1.32 
+
+# H3----
+# There is more variation between (a) managers in personal info use, (b) managers in population info use, (c) divisions in personal info use, and (d) divisions in population info use, than there is in a model of dummy data with randomised formation and win rates across managers and divisions, as indicated by sigma_manager[2,3] and sigma_division[2,3]
+
+post.d <- extract.samples(m4dR2) # run dummy model using code above
+post.r <- extract.samples(m4R2) # real data
+
+sigma_diffs <- data.frame(
+  diff_pers_manager=post.r$sigma_manager[,2] - post.d$sigma_manager[,2], 
+  diff_pop_manager=post.r$sigma_manager[,3] - post.d$sigma_manager[,3], 
+  diff_pers_division=post.r$sigma_division[,2] - post.d$sigma_division[,2], 
+  diff_pop_division=post.r$sigma_division[,3] - post.d$sigma_division[,3])
+
+precis_sigmadiffsR2 <- precis(sigma_diffs)  # differences in all except population use & division
+precis_sigmadiffsR2
+plot(precis_sigmadiffsR2)
+
+saveRDS(precis_sigmadiffsR2[,1:4], file="modeloutputs/precis_sigmadiffsR2.rds")
+# precis_sigmadiffsR2 <- readRDS(file="precis_sigmadiffsR2.rds")
+
+# H4----
+# There is an n-shaped relationship between information use ratio and personal win rate across managers, i.e. managers who combine personal and population information do better than managers who predominantly use one or the other. Model this with unit of analysis as a manager, predicting their personal win rate from their population:personal use ratio squared (negative b^2 coefficient in a quadratic polynomial)
+
+post <- extract.samples(m4R2)
+
+# mean pop use rate / mean pers use rate  NB ADDED INV_LOGIT UNLIKE PREREG VERSION
+info_ratio <- apply(inv_logit(post$a_manager[,,3]), 2, mean) / apply(inv_logit(post$a_manager[,,2]), 2, mean)
+# info_ratio <- standardize(info_ratio)  # standardise NB REMOVED THIS TOO
+
+win_rate <- NA
+for (i in 1:length(levels(f$manager))) win_rate[i] <- mean(f[f$manager == levels(f$manager)[i],]$win)
+win_rate <- standardize(win_rate)  # relative to mean win_rate
+
+m <- data.frame(win_rate = win_rate, info_ratio = info_ratio, info_ratio_sq = info_ratio^2)
+
+dat_list <- list(
+  info_ratio = m$info_ratio,
+  win_rate = m$win_rate,
+  info_ratio_sq = m$info_ratio_sq
+)
+
+m.manager <- ulam(
+  alist(
+    win_rate ~ dnorm( mu , sigma ) ,
+    mu <- a + b1*info_ratio + b2*info_ratio_sq,
+    a ~ normal( 0 , 1.5 ),
+    b1 ~ normal( 0 , 0.2),
+    b2 ~ normal( -0.1 , 0.2),
+    sigma ~ dexp( 1 )
+  ) ,
+  data=dat_list , chains=4 , log_lik = T, cores=4, iter = 2000 )
+
+# prior predictive simulation: slightly more likely to be n-shaped, but still allow u-shaped
+# N <- length(levels(f$manager))
+# a <- rnorm(N, 0, 1.5)
+# b1 <- rnorm(N, 0, 0.2)
+# b2 <- rnorm(N, -0.1, 0.2)
+# plot( NULL , xlim=range(info_ratio) , ylim=range(win_rate) ,
+#       xlab="info_ratio" , ylab="win_rate" )
+# #xbar <- mean(d2$weight)
+# for ( i in 1:N ) curve( a[i] + b1[i]*x + b2[i]*x^2,
+#                         from=min(info_ratio) , to=max(info_ratio) , add=TRUE ,
+#                         col=col.alpha("black",0.2) )
+
+precis_managerR2 <- precis(m.manager)
+precis_managerR2  # H4 not supported: very slightly positive b2 coefficient. Mostly no relationship.
+#        mean   sd  5.5% 94.5% n_eff Rhat
+# a      0.03 0.14 -0.19  0.25  1353    1
+# b1    -0.17 0.17 -0.45  0.10  1211    1
+# b2     0.11 0.07  0.00  0.21  1520    1
+# sigma  1.00 0.04  0.94  1.06  2432    1
+
+saveRDS(precis_managerR2[,1:4], file="modeloutputs/precis_managerR2.rds")
