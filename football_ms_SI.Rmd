@@ -1,5 +1,5 @@
 ---
-title: "Supplementary Information for 'Cultural evolution of football tactics: Strategic social learning in managers' choice of formation'"
+title: "Supplementary Material for 'Cultural evolution of football tactics: Strategic social learning in managers' choice of formation'"
 author: Alex Mesoudi&nbsp;^[Human Behaviour and Cultural Evolution Group, Department of Biosciences, College of Life and Environmental Sciences, University of Exeter, Penryn, Cornwall TR10 9FE, United Kingdom; a.mesoudi@exeter.ac.uk]
 date: '`r format(Sys.time(), "%d %B, %Y")`'
 fontsize: 11pt
@@ -299,4 +299,131 @@ knitr::kable(precis_manager, caption="Model estimates for the quadratic regressi
 ```
 
 \newpage
+
+# Revised models excluding own team formations from population predictors
+
+The following results are from the revised models which, for the population predictors, exclude formations used by the same team during the $X$-day window. That is, for team $i$, the population predictors are calculated from all formations used in the $X$-day window except those used by team $i$. This ensures a stricter separation between personal and population predictors, as now team $i$'s formations are only used in the personal predictors, not the population predictors. This change had negligible effects on the results, and all conclusions for all hypotheses remain qualitatively identical to the original findings derived from the original preregistered analyses presented in the main paper.
+
+## Hypothesis H1: combination of population and personal information use
+
+Table S13 shows almost identical model comparison for the revised models excluding own team from population predictors, compared to the original model given in the main text. Table S14 also shows very similar estimates for the full revised model compared to the original.
+
+```{r tableS13, echo = F, message = F}
+mcomparisonR1 <- as.matrix(readRDS(file="modeloutputs/mcomparisonR1.rds"))
+
+row.names(mcomparisonR1)[row.names(mcomparisonR1) == "m1R"] <- "Null model"
+row.names(mcomparisonR1)[row.names(mcomparisonR1) == "m2R"] <- "Personal model"
+row.names(mcomparisonR1)[row.names(mcomparisonR1) == "m3R"] <- "Population model"
+row.names(mcomparisonR1)[row.names(mcomparisonR1) == "m4R"] <- "Full model"
+
+knitr::kable(mcomparisonR1, caption="Model comparison to test hypothesis H1, with revised models excluding own team from the population predictors.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS14, echo = F, message = F}
+precis_m4R1 <- as.matrix(readRDS(file="modeloutputs/precis_m4R1.rds"))
+
+# add rows, sub-headings for fixed and varying effects
+precis_m4R1 <- rbind(fixed_effects = rep(NA,6), precis_m4R1)
+precis_m4R1 <- rbind(precis_m4R1[1:12,], rep(NA,6), varying_effects = rep(NA,6), precis_m4R1[13:18,])
+
+row.names(precis_m4R1) <- c("Fixed effects:", "Home/away: Home", "Home/away: Away", "Team strength", "Personal 4231 use", "Personal 4231 win rate", "Personal 4231 use * personal 4231 win rate", "Personal 4231 use * personal win rate", "Population 4231 use", "Population 4231 win rate", "Population 4231 use * population 4231 win rate", "Population 4231 use * personal win rate", "  ", "Varying effects:", "Manager", "Manager * personal 4231 use", "Manager * population 4231 win rate", "Division", "Division * personal 4231 use", "Division * population 4231 win rate")
+
+options(knitr.kable.NA = '')
+knitr::kable(precis_m4R1[,1:4], caption="Parameter estimates for the full revised model excluding own team from the population predictors. Home/away is an indicator trait with separate estimates for formations used home and away. Varying effects show the standard deviations of the varying intercepts and slopes. See SI for full model specification and priors.", digits = 2, booktabs = T, linesep="")
+```
+
+## Hypothesis H2: ratio of population to personal 4231 use
+
+For the revised model excluding own team from population predictors, the mean population:personal use ratio was 0.79, 89%CI[0.21, 1.48]. Similar to the original model, the mean ratio is less than one, and the CIs are so wide that they encompass one.
+
+## Hypothesis H3: variation across managers and divisions
+
+Table S15 shows that for the revised model excluding own team from population predictors, there is more varation in 4231 personal and population use across managers than randomised data, and more variation across divisions in personal 4231 use, but not across divisions in population 4231 use. This is the same as the original model.
+
+```{r tableS15, echo = F, message = F}
+precis_sigmadiffsR1 <- as.matrix(readRDS(file="modeloutputs/precis_sigmadiffsR1.rds"))
+
+row.names(precis_sigmadiffsR1)[row.names(precis_sigmadiffsR1) == "diff_pers_manager"] <- "Manager * personal 4231 use"
+row.names(precis_sigmadiffsR1)[row.names(precis_sigmadiffsR1) == "diff_pop_manager"] <- "Manager * population 4231 use"
+row.names(precis_sigmadiffsR1)[row.names(precis_sigmadiffsR1) == "diff_pers_division"] <- "Division * personal 4231 use"
+row.names(precis_sigmadiffsR1)[row.names(precis_sigmadiffsR1) == "diff_pop_division"] <- "Division * population 4231 use"
+
+knitr::kable(precis_sigmadiffsR1, caption="Tests of the differences between varying effects from the real data and varying effects from randomised data, to test hypothesis H3 with the revised model excluding own team from the population predictors. Values shown are real minus randomised standard deviations.", digits = 2, booktabs = T, linesep="")
+```
+
+## Hypothesis H4: population to personal use ratio and win rate
+
+Table S16 shows that there is no quadratic or linear relationship between manager win rate and population:personal use ratio for the revised model, just as for the original model.
+
+```{r tableS16, echo = F, message = F}
+precis_managerR1 <- as.matrix(readRDS(file="modeloutputs/precis_managerR1.rds"))
+
+knitr::kable(precis_managerR1, caption="Model estimates for the quadratic regression model with manager as unit of analysis, to test hypothesis H4 with the revised model excluding own team from the population predictors. Parameter a is the intercept, b1 is the linear coefficient and b2 the quadratic coefficient. Win rate is modelled as normally distributed with standard deviation sigma. See SI for priors.", digits = 2, booktabs = T, linesep="")
+```
+
+\newpage
+
+# Revised models including additional opponent controls
+
+The following results are for models that are identical to the preregistered original analyses presented in the main paper, but with two additional controls added to all models: (i) the relative strength of the opponent, calculated in the same way as the own team strength predictor, on the assumption that managers may alter their formations depending on opponent strength (e.g. play defensive formations against strong teams and attacking formations against weak teams); and (ii) the formation played by the opponent, coded as 4231 or non-4231, on the assumption that managers may attempt to counter 4231 with either the same formation, matching players in the same positions, or with a different formation in an attempt to break the 4231 domination. Including these controls had negligible effect on the parameter estimates, and did not qualitatively change conclusions regarding any of the hypotheses.
+
+## Hypothesis H1: combination of population and personal information use
+
+Table S17 shows almost identical model comparison for the revised models including additional opponent controls, compared to the original model given in the main text. Table S18 also shows very similar estimates for the full revised model compared to the original. The two additional control variables both reliably predict a manager's use of 4231: managers are more likely to use 4231 against stronger opponents, and when opponents use 4231 themselves.
+
+```{r tableS17, echo = F, message = F}
+mcomparisonR2 <- as.matrix(readRDS(file="modeloutputs/mcomparisonR2.rds"))
+
+row.names(mcomparisonR2)[row.names(mcomparisonR2) == "m1R2"] <- "Null model"
+row.names(mcomparisonR2)[row.names(mcomparisonR2) == "m2R2"] <- "Personal model"
+row.names(mcomparisonR2)[row.names(mcomparisonR2) == "m3R2"] <- "Population model"
+row.names(mcomparisonR2)[row.names(mcomparisonR2) == "m4R2"] <- "Full model"
+
+knitr::kable(mcomparisonR2, caption="Model comparison to test hypothesis H1, with revised models including additional opponent controls.", digits = 2, booktabs = T, linesep="")
+```
+
+```{r tableS18, echo = F, message = F}
+precis_m4R2 <- as.matrix(readRDS(file="modeloutputs/precis_m4R2.rds"))
+
+# add rows, sub-headings for fixed and varying effects
+precis_m4R2 <- rbind(fixed_effects = rep(NA,6), precis_m4R2)
+precis_m4R2 <- rbind(precis_m4R2[1:14,], rep(NA,6), varying_effects = rep(NA,6), precis_m4R2[15:20,])
+
+row.names(precis_m4R2) <- c("Fixed effects:", "Home/away: Home", "Home/away: Away", "Team strength", "Opponent strength", "Opponent 4231", "Personal 4231 use", "Personal 4231 win rate", "Personal 4231 use * personal 4231 win rate", "Personal 4231 use * personal win rate", "Population 4231 use", "Population 4231 win rate", "Population 4231 use * population 4231 win rate", "Population 4231 use * personal win rate", "  ", "Varying effects:", "Manager", "Manager * personal 4231 use", "Manager * population 4231 win rate", "Division", "Division * personal 4231 use", "Division * population 4231 win rate")
+
+options(knitr.kable.NA = '')
+knitr::kable(precis_m4R2[,1:4], caption="Parameter estimates for the full revised model including additional opponent controls. Home/away is an indicator trait with separate estimates for formations used home and away. Varying effects show the standard deviations of the varying intercepts and slopes. See SI for full model specification and priors.", digits = 2, booktabs = T, linesep="")
+```
+
+## Hypothesis H2: ratio of population to personal 4231 use
+
+For the revised model, the mean population:personal use ratio was -0.53, 89%CI[0.20, 1.32]. The mean is negative but this is unreliable and due to an extreme negative value. The confidence intervals, however, are similar to the original model, and widely encompass one indicating no support for the hypothesis.
+
+## Hypothesis H3: variation across managers and divisions
+
+Table S19 shows that for the revised model with additional opponent controls, there is more varation in 4231 personal and population use across managers than randomised data, and more variation across divisions in personal 4231 use, but not across divisions in population 4231 use. This is the same as the original model.
+
+```{r tableS19, echo = F, message = F}
+precis_sigmadiffsR2 <- as.matrix(readRDS(file="modeloutputs/precis_sigmadiffsR2.rds"))
+
+row.names(precis_sigmadiffsR2)[row.names(precis_sigmadiffsR2) == "diff_pers_manager"] <- "Manager * personal 4231 use"
+row.names(precis_sigmadiffsR2)[row.names(precis_sigmadiffsR2) == "diff_pop_manager"] <- "Manager * population 4231 use"
+row.names(precis_sigmadiffsR2)[row.names(precis_sigmadiffsR2) == "diff_pers_division"] <- "Division * personal 4231 use"
+row.names(precis_sigmadiffsR2)[row.names(precis_sigmadiffsR2) == "diff_pop_division"] <- "Division * population 4231 use"
+
+knitr::kable(precis_sigmadiffsR2, caption="Tests of the differences between varying effects from the real data and varying effects from randomised data, to test hypothesis H3 with the revised model including additional opponent controls. Values shown are real minus randomised standard deviations.", digits = 2, booktabs = T, linesep="")
+```
+
+## Hypothesis H4: population to personal use ratio and win rate
+
+Table S20 shows that there is no quadratic or linear relationship between manager win rate and population:personal use ratio for the revised model including additional opponent controls, just as for the original model.
+
+```{r tableS20, echo = F, message = F}
+precis_managerR2 <- as.matrix(readRDS(file="modeloutputs/precis_managerR2.rds"))
+
+knitr::kable(precis_managerR2, caption="Model estimates for the quadratic regression model with manager as unit of analysis, to test hypothesis H4 with the revised model including additional opponent controls. Parameter a is the intercept, b1 is the linear coefficient and b2 the quadratic coefficient. Win rate is modelled as normally distributed with standard deviation sigma. See SI for priors.", digits = 2, booktabs = T, linesep="")
+```
+
+\newpage
+
 # References
